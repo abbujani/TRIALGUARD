@@ -15,8 +15,11 @@ Blueprint Section 65 — every route has graceful error fallbacks.
 
 from __future__ import annotations
 
+import json
+import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, url_for
 
@@ -26,17 +29,46 @@ import memory as mem
 from safety import is_urgent
 
 app = Flask(__name__)
-app.secret_key = "trialguard-dev-secret"   # non-sensitive; replaced in prod via env
+app.secret_key = os.environ.get("SECRET_KEY", "trialguard-dev-secret")
 
 # Jinja2 extras
 app.jinja_env.globals["enumerate"] = enumerate
 
 # ── App startup ───────────────────────────────────────────────────────────────
 
+def _ensure_demo_seed() -> None:
+    """Seed demo participants on serverless (Vercel) cold starts.
+
+    Vercel's /tmp SQLite is ephemeral, so the DB is empty after every
+    cold start. Seed the 10 demo participants so the dashboard is usable.
+    Only runs on Vercel and only when the participants table is empty.
+    Failures are non-fatal (app still loads with an empty dashboard).
+    """
+    if os.environ.get("VERCEL") != "1":
+        return
+    try:
+        if db.list_participants():
+            return
+        demo_file = Path(__file__).parent / "data" / "demo_data.json"
+        if not demo_file.exists():
+            return
+        data = json.loads(demo_file.read_text(encoding="utf-8"))
+        for p in data.get("participants", []):
+            db.upsert_participant(
+                participant_id=p["id"],
+                display_name=p.get("display_name", p["id"]),
+                trial_id=p.get("trial_id", "TRIAL-001"),
+                status=p.get("status", "Active"),
+            )
+    except Exception as exc:  # noqa: BLE001
+        app.logger.warning("Demo auto-seed failed (non-fatal): %s", exc)
+
+
 @app.before_request
 def _startup():
     """Ensure the DB is initialised before the first request."""
     db.init_db()
+    _ensure_demo_seed()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -297,4 +329,5 @@ def server_error(e):
 
 if __name__ == "__main__":
     db.init_db()
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

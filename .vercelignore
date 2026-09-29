@@ -1,0 +1,12 @@
+.env
+*.db
+*.sqlite3
+__pycache__/
+.pytest_cache/
+.git/
+.kiro/
+stderr.txt
+stdout.txt
+bp_raw.txt
+test_out.txt
+test_err.txt
