@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Action Brief · TrialGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  {% if participant %}
+  <a class="back-link" href="{{ url_for('participant', participant_id=participant.id) }}">
+    ← {{ participant.display_name }}
+  </a>
+  {% else %}
+  <a class="back-link" href="{{ url_for('dashboard') }}">← Dashboard</a>
+  {% endif %}
+  <h1>Coordinator Action Brief</h1>
+  <p class="subtitle">
+    Mode: <span class="mode-badge mode-{{ run.mode }}">{{ run.mode }}</span>
+    &nbsp;|&nbsp; {{ run.created_at[:16] }}
+  </p>
+</div>
+
+<!-- Memory status indicator (blueprint Section 55) -->
+<div class="memory-indicator {{ 'memory-used' if brief.memory_used else 'memory-not-used' }}">
+  {% if brief.memory_used %}
+  <div class="mi-row"><span class="mi-check">✓</span> Hindsight queried</div>
+  <div class="mi-row"><span class="mi-check">✓</span> {{ brief.memories_count }} relevant memories retrieved</div>
+  <div class="mi-row"><span class="mi-check">✓</span> Historical context used in analysis</div>
+  <div class="mi-row"><span class="mi-check">✓</span> Current interaction retained for future use</div>
+  {% else %}
+  <div class="mi-row"><span class="mi-dash">—</span>
+    {% if run.mode == 'baseline' %}Baseline mode — no memory retrieval{% else %}No relevant historical memory found{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Current check-in -->
+{% if checkin %}
+<div class="brief-card card-current">
+  <div class="card-label">CURRENT CHECK-IN</div>
+  <div class="card-body">{{ checkin.raw_text }}</div>
+  <div class="card-meta">{{ checkin.occurred_at[:10] }}</div>
+</div>
+{% endif %}
+
+<!-- Current issue -->
+<div class="brief-card card-issue">
+  <div class="card-label">CURRENT ISSUE</div>
+  <div class="card-body">{{ brief.current_issue }}</div>
+</div>
+
+{% if brief.participant_concern %}
+<div class="brief-card card-concern">
+  <div class="card-label">PARTICIPANT CONCERN</div>
+  <div class="card-body">{{ brief.participant_concern }}</div>
+</div>
+{% endif %}
+
+<!-- Historical context (blueprint Section 34) -->
+{% if brief.historical_matches %}
+<div class="brief-card card-history">
+  <div class="card-label">HINDSIGHT MEMORY</div>
+  <div class="card-body">
+    {% for match in brief.historical_matches %}
+    <div class="history-item">
+      <span class="history-check">✓</span>
+      <div class="history-detail">
+        <strong>{{ match.date }}</strong> — {{ match.event }}
+        <div class="history-relevance">{{ match.relevance }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Pattern -->
+<div class="brief-card card-pattern">
+  <div class="card-label">HISTORICAL PATTERN</div>
+  <div class="card-body">{{ brief.historical_pattern }}</div>
+</div>
+
+<!-- Previous outcome -->
+<div class="brief-card card-outcome">
+  <div class="card-label">PREVIOUS OUTCOME</div>
+  <div class="card-body">{{ brief.previous_outcome }}</div>
+</div>
+
+<!-- Coordinator action -->
+<div class="brief-card card-action">
+  <div class="card-label">COORDINATOR ACTION</div>
+  <div class="card-body">{{ brief.recommended_coordinator_action }}</div>
+</div>
+
+<!-- Safety note -->
+<div class="safety-note">
+  {{ brief.safety_note }}
+</div>
+
+<!-- Actions -->
+<div class="result-actions">
+  {% if participant %}
+  <a class="btn btn-primary" href="{{ url_for('checkin_form', participant_id=participant.id) }}">
+    New Check-in
+  </a>
+  {% endif %}
+  <a class="btn" href="{{ url_for('memory_trace', run_id=run.id) }}">
+    View Memory Trace
+  </a>
+  {% if participant %}
+  <a class="btn" href="{{ url_for('participant', participant_id=participant.id) }}">
+    Participant Timeline
+  </a>
+  {% endif %}
+</div>
+{% endblock %}

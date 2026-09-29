@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · TrialGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>TrialGuard Dashboard</h1>
+  <p class="subtitle">Clinical trial coordinator support powered by Hindsight memory</p>
+</div>
+
+<!-- Stats bar -->
+<div class="stats-row">
+  <div class="stat-card">
+    <span class="stat-number">{{ stats.participants }}</span>
+    <span class="stat-label">Active Participants</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">{{ stats.checkins }}</span>
+    <span class="stat-label">Check-ins Recorded</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">{{ stats.outcomes }}</span>
+    <span class="stat-label">Outcomes Documented</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">{{ stats.agent_runs }}</span>
+    <span class="stat-label">Agent Analyses Run</span>
+  </div>
+</div>
+
+<!-- Memory status -->
+<div class="memory-status {{ 'status-ok' if hindsight_ok else 'status-warn' }}">
+  {% if hindsight_ok %}
+    ✓ Hindsight memory connected &mdash; API version {{ hindsight_version }}
+  {% else %}
+    ⚠ Hindsight memory unavailable &mdash; analyses will run without historical context
+  {% endif %}
+</div>
+
+<!-- Participants table -->
+<section class="section">
+  <h2>Participants <span class="badge">{{ participants|length }}</span></h2>
+  {% if participants %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th><th>Name</th><th>Trial</th><th>Status</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in participants %}
+      <tr>
+        <td><code>{{ p.id }}</code></td>
+        <td>{{ p.display_name }}</td>
+        <td>{{ p.trial_id }}</td>
+        <td><span class="status-badge status-{{ p.status|lower|replace(' ','_') }}">{{ p.status }}</span></td>
+        <td>
+          <a class="btn btn-sm" href="{{ url_for('participant', participant_id=p.id) }}">View</a>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('checkin_form', participant_id=p.id) }}">New Check-in</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No participants yet. Run <code>python seed_demo.py</code> to load demo data.</p>
+  {% endif %}
+</section>
+
+<!-- Recent analyses -->
+{% if recent_runs %}
+<section class="section">
+  <h2>Recent Analyses</h2>
+  <table class="table">
+    <thead>
+      <tr><th>Run ID</th><th>Participant</th><th>Mode</th><th>Memory Used</th><th>Date</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for run in recent_runs %}
+      <tr>
+        <td><code>{{ run.id[:20] }}…</code></td>
+        <td>{{ run.participant_id or '—' }}</td>
+        <td><span class="mode-badge mode-{{ run.mode }}">{{ run.mode }}</span></td>
+        <td>
+          {% if run.final_output and run.final_output.memory_used %}
+            <span class="memory-yes">✓ {{ run.final_output.memories_count }} memories</span>
+          {% else %}
+            <span class="memory-no">—</span>
+          {% endif %}
+        </td>
+        <td>{{ run.created_at[:16] }}</td>
+        <td><a class="btn btn-sm" href="{{ url_for('result', run_id=run.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}

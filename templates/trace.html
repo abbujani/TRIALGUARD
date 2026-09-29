@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Memory Trace · TrialGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="back-link" href="{{ url_for('result', run_id=run.id) }}">← Action Brief</a>
+  <h1>Memory Trace</h1>
+  <p class="subtitle">Audit record for run <code>{{ run.id }}</code></p>
+</div>
+
+<!-- Run metadata -->
+<div class="trace-meta">
+  <div class="trace-meta-row">
+    <span class="trace-label">Run ID</span>
+    <code>{{ run.id }}</code>
+  </div>
+  <div class="trace-meta-row">
+    <span class="trace-label">Mode</span>
+    <span class="mode-badge mode-{{ run.mode }}">{{ run.mode }}</span>
+  </div>
+  <div class="trace-meta-row">
+    <span class="trace-label">Created</span>
+    {{ run.created_at }}
+  </div>
+  {% if participant %}
+  <div class="trace-meta-row">
+    <span class="trace-label">Participant</span>
+    {{ participant.id }} — {{ participant.display_name }}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Hindsight query sent -->
+<section class="trace-section">
+  <h2>Hindsight Query</h2>
+  {% if run.hindsight_query %}
+  <pre class="trace-pre">{{ run.hindsight_query }}</pre>
+  {% else %}
+  <p class="empty-state">No Hindsight query was made (baseline mode or urgent bypass).</p>
+  {% endif %}
+</section>
+
+<!-- Retrieved memories (blueprint Sections 35, 37) -->
+<section class="trace-section">
+  <h2>Retrieved Memories
+    <span class="badge">{{ memories|length }}</span>
+  </h2>
+  {% if memories %}
+  {% for i, mem in enumerate(memories) %}
+  <div class="memory-card">
+    <div class="memory-header">
+      <span class="memory-num">[{{ i+1 }}]</span>
+      <code class="memory-docid">{{ mem.document_id or 'no document_id' }}</code>
+      <span class="memory-tags">
+        {% for tag in (mem.tags or []) %}
+        <span class="tag">{{ tag }}</span>
+        {% endfor %}
+      </span>
+    </div>
+    <div class="memory-text">{{ mem.text }}</div>
+    {% if mem.metadata %}
+    <div class="memory-meta">
+      {% for k, v in mem.metadata.items() %}
+      <span class="meta-pair"><strong>{{ k }}</strong>: {{ v }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="empty-state">No memories were retrieved for this run.</p>
+  {% endif %}
+</section>
+
+<!-- Final output JSON -->
+<section class="trace-section">
+  <h2>Agent Final Output (raw JSON)</h2>
+  <pre class="trace-pre">{{ run.final_output | tojson(indent=2) }}</pre>
+</section>
+
+<!-- Original check-in -->
+{% if checkin %}
+<section class="trace-section">
+  <h2>Original Check-in Text</h2>
+  <pre class="trace-pre">{{ checkin.raw_text }}</pre>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ participant.display_name }} · TrialGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="back-link" href="{{ url_for('dashboard') }}">← Dashboard</a>
+  <h1>{{ participant.display_name }}</h1>
+  <p class="subtitle">
+    Trial: <strong>{{ participant.trial_id }}</strong> &nbsp;|&nbsp;
+    Status: <span class="status-badge status-{{ participant.status|lower }}">{{ participant.status }}</span>
+  </p>
+  <a class="btn btn-primary" href="{{ url_for('checkin_form', participant_id=participant.id) }}">
+    + New Check-in
+  </a>
+</div>
+
+<!-- Timeline -->
+<section class="section">
+  <h2>Interaction Timeline</h2>
+  {% if checkins %}
+  <div class="timeline">
+    {% for ci in checkins %}
+    <div class="timeline-item">
+      <div class="timeline-marker"></div>
+      <div class="timeline-content">
+        <div class="timeline-date">{{ ci.occurred_at[:10] }}</div>
+        <div class="timeline-text">{{ ci.raw_text[:300] }}{% if ci.raw_text|length > 300 %}…{% endif %}</div>
+        {% if ci.runs %}
+        <div class="timeline-runs">
+          {% for run in ci.runs %}
+          <a class="btn btn-sm {{ 'btn-primary' if run.mode == 'hindsight' else '' }}"
+             href="{{ url_for('result', run_id=run.id) }}">
+            View {{ run.mode }} analysis
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">No check-ins recorded yet.</p>
+  {% endif %}
+</section>
+
+<!-- Outcomes -->
+{% if outcomes %}
+<section class="section">
+  <h2>Documented Outcomes</h2>
+  <ul class="outcome-list">
+    {% for o in outcomes %}
+    <li>
+      <span class="outcome-date">{{ o.occurred_at[:10] }}</span>
+      <span class="outcome-text">{{ o.outcome_text }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

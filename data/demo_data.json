@@ -1,0 +1,414 @@
+{
+  "trial": {
+    "id": "TRIAL-001",
+    "name": "Phase II Oncology Safety & Efficacy Study",
+    "description": "A multi-site Phase II study evaluating dosage escalation safety and participant outcomes over six months."
+  },
+  "participants": [
+    {
+      "id": "P402",
+      "display_name": "Participant 402",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "recurring nausea after dosage events — hero participant",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-10T10:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "dosage_change",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-03-10.\n\nDosage increase administered today as per protocol schedule. Participant was briefed on potential side effects. Participant reported feeling well at time of administration. Coordinator noted the change in medical log."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-03-14T09:30:00Z",
+          "month_label": "Month 1",
+          "event_type": "symptom_report",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-03-14.\n\nParticipant reported moderate nausea beginning approximately two days after the recent dosage increase. Participant described symptoms as persistent but manageable. No vomiting reported. Coordinator documented the symptom report and initiated a meal-timing intervention — participant advised to take medication with food and at a consistent time each day."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-03-28T10:15:00Z",
+          "month_label": "Month 1 follow-up",
+          "event_type": "outcome",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-03-28.\n\nFollow-up check-in after earlier nausea episode. Participant reported that symptoms have significantly improved since the meal-timing intervention was introduced. Participant is now tolerating the dosage well. Coordinator documented the positive outcome. No further intervention required at this time."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-04-08T11:00:00Z",
+          "month_label": "Month 2",
+          "event_type": "routine",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-04-08.\n\nRoutine monthly check-in. Participant reports feeling well overall. No new symptoms reported. Tolerating current dosage without issue. Coordinator confirmed continued enrollment and no changes to current protocol."
+        },
+        {
+          "checkin_id": "005",
+          "occurred_at": "2026-05-06T09:00:00Z",
+          "month_label": "Month 3",
+          "event_type": "dosage_change",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-05-06.\n\nSecond protocol-scheduled dosage increase administered. Participant acknowledged understanding of the escalation. Coordinator reviewed prior nausea history with participant and reinforced the meal-timing guidance as a precautionary measure. Participant expressed mild concern but agreed to continue."
+        },
+        {
+          "checkin_id": "006",
+          "occurred_at": "2026-06-03T10:30:00Z",
+          "month_label": "Month 4",
+          "event_type": "routine",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-06-03.\n\nRoutine check-in at Month 4. No significant issues reported. Participant says they have been following meal-timing guidance consistently. No nausea or GI complaints. Coordinator noted stable tolerance of the current escalated dosage."
+        },
+        {
+          "checkin_id": "007",
+          "occurred_at": "2026-07-08T10:00:00Z",
+          "month_label": "Month 5",
+          "event_type": "routine",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-07-08.\n\nMonth 5 check-in. Participant continues to do well. No adverse symptoms noted. Energy levels described as normal. Coordinator confirmed no protocol deviations. Participant remains engaged and cooperative."
+        },
+        {
+          "checkin_id": "008",
+          "occurred_at": "2026-09-02T09:45:00Z",
+          "month_label": "Month 6",
+          "event_type": "concern",
+          "text": "Participant P402. Trial: TRIAL-001. Date: 2026-09-02.\n\nParticipant reported severe nausea returning over the past week. Participant expressed significant frustration and stated they are considering withdrawing from the study. Coordinator noted the similarity to the earlier Month 1 episode. Participant asked whether there is any point in continuing given the recurring symptoms. Coordinator documented the concern and escalated for clinical team review."
+        }
+      ]
+    },
+    {
+      "id": "P117",
+      "display_name": "Participant 117",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "no recurring issue — straightforward enrollment",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-12T09:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "routine",
+          "text": "Participant P117. Trial: TRIAL-001. Date: 2026-03-12.\n\nBaseline check-in at study enrollment. Participant reports feeling well. No pre-existing symptoms of concern. Initial dosage administered. Participant understands protocol requirements and has no immediate questions."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-04-10T10:00:00Z",
+          "month_label": "Month 2",
+          "event_type": "routine",
+          "text": "Participant P117. Trial: TRIAL-001. Date: 2026-04-10.\n\nMonthly check-in. No symptoms reported. Participant tolerating initial dosage well. No concerns raised."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-05-08T10:00:00Z",
+          "month_label": "Month 3",
+          "event_type": "dosage_change",
+          "text": "Participant P117. Trial: TRIAL-001. Date: 2026-05-08.\n\nFirst dosage escalation per protocol. Participant acknowledged the increase. No adverse reaction reported at time of administration."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-07-10T10:00:00Z",
+          "month_label": "Month 5",
+          "event_type": "routine",
+          "text": "Participant P117. Trial: TRIAL-001. Date: 2026-07-10.\n\nContinued good tolerance. No symptoms. Participant remains on protocol without deviation."
+        }
+      ]
+    },
+    {
+      "id": "P209",
+      "display_name": "Participant 209",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "recurring headache pattern",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-15T11:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "symptom_report",
+          "text": "Participant P209. Trial: TRIAL-001. Date: 2026-03-15.\n\nParticipant reported mild to moderate headache beginning three days after dosage initiation. Described as frontal pressure, lasting several hours per day. Coordinator advised adequate hydration and logged the report."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-03-29T10:00:00Z",
+          "month_label": "Month 1 follow-up",
+          "event_type": "outcome",
+          "text": "Participant P209. Trial: TRIAL-001. Date: 2026-03-29.\n\nHeadache symptoms reduced following hydration guidance. Participant reports headaches are now occasional and mild. Coordinator documented improvement. No further intervention required."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-05-09T09:30:00Z",
+          "month_label": "Month 3",
+          "event_type": "dosage_change",
+          "text": "Participant P209. Trial: TRIAL-001. Date: 2026-05-09.\n\nDosage escalation per protocol. Coordinator reminded participant to maintain fluid intake given prior headache history."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-05-15T10:00:00Z",
+          "month_label": "Month 3 follow-up",
+          "event_type": "symptom_report",
+          "text": "Participant P209. Trial: TRIAL-001. Date: 2026-05-15.\n\nHeadache returned following the most recent dosage increase. Moderate severity. Participant is concerned this is a recurring pattern linked to dosage changes. Coordinator reviewed hydration guidance and documented the recurrence."
+        },
+        {
+          "checkin_id": "005",
+          "occurred_at": "2026-09-03T10:30:00Z",
+          "month_label": "Month 6",
+          "event_type": "symptom_report",
+          "text": "Participant P209. Trial: TRIAL-001. Date: 2026-09-03.\n\nHeadache reported again at Month 6 check-in, coinciding with the third dosage increase. Participant notes this is the third time headaches have followed a dosage change. Coordinator documented the recurring pattern for clinical team review."
+        }
+      ]
+    },
+    {
+      "id": "P314",
+      "display_name": "Participant 314",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "fatigue pattern",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-18T09:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "symptom_report",
+          "text": "Participant P314. Trial: TRIAL-001. Date: 2026-03-18.\n\nParticipant reported persistent fatigue beginning one week after enrollment and initial dosage administration. Described as general tiredness affecting daily activities. No pain reported. Coordinator logged the report."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-04-15T10:30:00Z",
+          "month_label": "Month 2",
+          "event_type": "outcome",
+          "text": "Participant P314. Trial: TRIAL-001. Date: 2026-04-15.\n\nFatigue somewhat reduced compared to Month 1 report. Participant adjusted sleep schedule as suggested. Coordinator noted partial improvement and documented the outcome."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-05-20T09:00:00Z",
+          "month_label": "Month 3",
+          "event_type": "symptom_report",
+          "text": "Participant P314. Trial: TRIAL-001. Date: 2026-05-20.\n\nFatigue persists at a moderate level despite earlier improvement. Participant reports difficulty concentrating at work. Coordinator flagged for clinical review and documented the continued symptom."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-07-14T10:00:00Z",
+          "month_label": "Month 5",
+          "event_type": "symptom_report",
+          "text": "Participant P314. Trial: TRIAL-001. Date: 2026-07-14.\n\nFatigue remains a consistent concern. Participant has noted it has been ongoing since Month 1 with only partial relief. Coordinator documented persistent fatigue pattern for clinical team review."
+        }
+      ]
+    },
+    {
+      "id": "P501",
+      "display_name": "Participant 501",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "issue resolved previously",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-20T10:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "symptom_report",
+          "text": "Participant P501. Trial: TRIAL-001. Date: 2026-03-20.\n\nParticipant reported mild skin rash appearing on forearms approximately one week after starting the study medication. Described as non-painful but visible. Coordinator logged the report and referred for dermatology review."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-04-05T11:00:00Z",
+          "month_label": "Month 2",
+          "event_type": "outcome",
+          "text": "Participant P501. Trial: TRIAL-001. Date: 2026-04-05.\n\nDermatology review completed. Rash assessed as mild allergic reaction. Topical treatment prescribed. At this check-in, participant reports the rash has completely resolved. Coordinator documented full resolution of the skin reaction."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-05-12T10:30:00Z",
+          "month_label": "Month 3",
+          "event_type": "routine",
+          "text": "Participant P501. Trial: TRIAL-001. Date: 2026-05-12.\n\nRoutine check-in. No recurrence of rash or new symptoms. Participant tolerating current dosage well. Coordinator confirmed stable participation."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-09-05T10:00:00Z",
+          "month_label": "Month 6",
+          "event_type": "routine",
+          "text": "Participant P501. Trial: TRIAL-001. Date: 2026-09-05.\n\nSix-month check-in. No skin issues or other adverse events reported since the resolved rash in Month 2. Participant remains in good health and continues enrollment."
+        }
+      ]
+    },
+    {
+      "id": "P607",
+      "display_name": "Participant 607",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "conflicting historical outcome",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-22T09:30:00Z",
+          "month_label": "Month 1",
+          "event_type": "symptom_report",
+          "text": "Participant P607. Trial: TRIAL-001. Date: 2026-03-22.\n\nParticipant reported joint pain in both knees beginning two weeks after initial dosage. Described as moderate. Coordinator referred to physical therapy evaluation and documented the report."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-04-18T10:00:00Z",
+          "month_label": "Month 2",
+          "event_type": "outcome",
+          "text": "Participant P607. Trial: TRIAL-001. Date: 2026-04-18.\n\nPhysical therapy completed two sessions. Participant reported improvement in joint pain at this check-in. Coordinator documented improved outcome following physical therapy referral."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-05-25T10:30:00Z",
+          "month_label": "Month 3",
+          "event_type": "outcome",
+          "text": "Participant P607. Trial: TRIAL-001. Date: 2026-05-25.\n\nContradictory report: participant now states that joint pain did not fully resolve as previously recorded and has persisted since Month 1. Physical therapy was only partially effective. Coordinator documented the discrepancy — earlier record noted improvement, current participant report indicates ongoing symptoms. Source records flagged for clinical review."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-09-07T09:00:00Z",
+          "month_label": "Month 6",
+          "event_type": "symptom_report",
+          "text": "Participant P607. Trial: TRIAL-001. Date: 2026-09-07.\n\nJoint pain continues. Historical records contain conflicting outcome reports from Month 2 and Month 3. Coordinator noted the unresolved discrepancy and escalated for formal clinical review of both records."
+        }
+      ]
+    },
+    {
+      "id": "P722",
+      "display_name": "Participant 722",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "first-time issue — no prior history",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-25T10:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "routine",
+          "text": "Participant P722. Trial: TRIAL-001. Date: 2026-03-25.\n\nEnrollment check-in. No symptoms or concerns reported. Participant understands the protocol and is cooperative."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-05-15T10:00:00Z",
+          "month_label": "Month 3",
+          "event_type": "routine",
+          "text": "Participant P722. Trial: TRIAL-001. Date: 2026-05-15.\n\nRoutine check-in. Tolerating dosage well. No issues to report."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-09-08T11:00:00Z",
+          "month_label": "Month 6",
+          "event_type": "symptom_report",
+          "text": "Participant P722. Trial: TRIAL-001. Date: 2026-09-08.\n\nParticipant reported shortness of breath during mild physical activity for the first time. No prior history of respiratory symptoms in the trial record. Participant has no prior documented similar episodes. Coordinator documented the first occurrence and referred for clinical evaluation."
+        }
+      ]
+    },
+    {
+      "id": "P811",
+      "display_name": "Participant 811",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "unrelated similar symptom — nausea from different cause",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-28T09:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "routine",
+          "text": "Participant P811. Trial: TRIAL-001. Date: 2026-03-28.\n\nEnrollment check-in. No symptoms. Participant well and cooperative."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-04-20T10:00:00Z",
+          "month_label": "Month 2",
+          "event_type": "symptom_report",
+          "text": "Participant P811. Trial: TRIAL-001. Date: 2026-04-20.\n\nParticipant reported nausea. After detailed questioning, coordinator established that nausea is associated with skipping meals rather than medication timing. Participant confirmed they have missed breakfast on several days this week. No dosage change occurred recently. Coordinator documented nausea as meal-related rather than medication-related and advised consistent meal schedule."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-05-18T10:30:00Z",
+          "month_label": "Month 3",
+          "event_type": "outcome",
+          "text": "Participant P811. Trial: TRIAL-001. Date: 2026-05-18.\n\nNausea resolved after participant maintained a regular meal schedule. No medication-related adverse effects noted. Coordinator confirmed meal-related aetiology and documented resolution."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-09-10T09:30:00Z",
+          "month_label": "Month 6",
+          "event_type": "routine",
+          "text": "Participant P811. Trial: TRIAL-001. Date: 2026-09-10.\n\nSix-month check-in. No further nausea or adverse events. Participant maintaining good routine. Coordinator confirmed continued stable enrollment."
+        }
+      ]
+    },
+    {
+      "id": "P905",
+      "display_name": "Participant 905",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "multiple benign check-ins — no adverse events",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-03-30T10:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "routine",
+          "text": "Participant P905. Trial: TRIAL-001. Date: 2026-03-30.\n\nEnrollment check-in. No issues. Participant started protocol without incident."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-04-28T10:00:00Z",
+          "month_label": "Month 2",
+          "event_type": "routine",
+          "text": "Participant P905. Trial: TRIAL-001. Date: 2026-04-28.\n\nMonth 2 check-in. No symptoms. Tolerating dosage well."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-05-27T10:00:00Z",
+          "month_label": "Month 3",
+          "event_type": "routine",
+          "text": "Participant P905. Trial: TRIAL-001. Date: 2026-05-27.\n\nMonth 3 check-in including dosage escalation. Participant reports no adverse effects after the increase."
+        },
+        {
+          "checkin_id": "004",
+          "occurred_at": "2026-06-25T10:00:00Z",
+          "month_label": "Month 4",
+          "event_type": "routine",
+          "text": "Participant P905. Trial: TRIAL-001. Date: 2026-06-25.\n\nMonth 4 check-in. Participant remains asymptomatic. No concerns."
+        },
+        {
+          "checkin_id": "005",
+          "occurred_at": "2026-07-24T10:00:00Z",
+          "month_label": "Month 5",
+          "event_type": "routine",
+          "text": "Participant P905. Trial: TRIAL-001. Date: 2026-07-24.\n\nMonth 5 check-in. Continued good tolerance. Participant is one of the most compliant in the cohort."
+        },
+        {
+          "checkin_id": "006",
+          "occurred_at": "2026-09-11T10:00:00Z",
+          "month_label": "Month 6",
+          "event_type": "routine",
+          "text": "Participant P905. Trial: TRIAL-001. Date: 2026-09-11.\n\nFinal Month 6 check-in. No adverse events across all six months. Participant completed the observation period without incident."
+        }
+      ]
+    },
+    {
+      "id": "P990",
+      "display_name": "Participant 990",
+      "trial_id": "TRIAL-001",
+      "status": "Active",
+      "pattern": "withdrawal concern with no relevant history",
+      "checkins": [
+        {
+          "checkin_id": "001",
+          "occurred_at": "2026-04-02T10:00:00Z",
+          "month_label": "Month 1",
+          "event_type": "routine",
+          "text": "Participant P990. Trial: TRIAL-001. Date: 2026-04-02.\n\nEnrollment check-in. No adverse effects from initial dosage. Participant engaged and positive about participation."
+        },
+        {
+          "checkin_id": "002",
+          "occurred_at": "2026-05-05T10:00:00Z",
+          "month_label": "Month 2",
+          "event_type": "routine",
+          "text": "Participant P990. Trial: TRIAL-001. Date: 2026-05-05.\n\nMonth 2 check-in. No physical symptoms. Participant mentions scheduling difficulties but no medical concerns."
+        },
+        {
+          "checkin_id": "003",
+          "occurred_at": "2026-09-12T11:00:00Z",
+          "month_label": "Month 6",
+          "event_type": "concern",
+          "text": "Participant P990. Trial: TRIAL-001. Date: 2026-09-12.\n\nParticipant contacted the study team to express a desire to withdraw from the trial. Cited personal reasons unrelated to symptoms — primarily scheduling and travel burden. No adverse medical events reported at any prior check-in. Coordinator documented the withdrawal concern. No relevant historical medical issue was found in the participant's record that would explain or contextualize this request."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment / secrets
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp output files
+stderr.txt
+stdout.txt
+bp_raw.txt
+run_stdout.txt
+run_stderr.txt
+test_out.txt
+demo_out.txt
+demo_err.txt
+seed_db_out.txt
+seed_db_err.txt
+models_out.txt
+models_err.txt
+
+# Test artefacts
+.pytest_cache/
+htmlcov/
+.coverage

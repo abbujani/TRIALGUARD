@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}New Check-in · {{ participant.display_name }} · TrialGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="back-link" href="{{ url_for('participant', participant_id=participant.id) }}">← {{ participant.display_name }}</a>
+  <h1>New Check-in</h1>
+  <p class="subtitle">Participant: <strong>{{ participant.id }}</strong> · Trial: <strong>{{ participant.trial_id }}</strong></p>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<form class="checkin-form" method="POST"
+      action="{{ url_for('analyze', participant_id=participant.id) }}">
+
+  <div class="form-group">
+    <label for="occurred_at">Date of Check-in</label>
+    <input type="date" id="occurred_at" name="occurred_at"
+           value="{{ today }}" required />
+  </div>
+
+  <div class="form-group">
+    <label for="checkin_text">Check-in Notes</label>
+    <textarea id="checkin_text" name="checkin_text" rows="6" required
+              placeholder="Describe what the participant reported today..."></textarea>
+  </div>
+
+  <!-- Mode selector (blueprint Section 29) -->
+  <div class="form-group mode-selector">
+    <label>Analysis Mode</label>
+    <div class="mode-options">
+      <label class="mode-option">
+        <input type="radio" name="mode" value="hindsight" checked />
+        <span class="mode-label hindsight-label">
+          <strong>With Hindsight Memory</strong>
+          <small>Retrieves historical context for deeper analysis</small>
+        </span>
+      </label>
+      <label class="mode-option">
+        <input type="radio" name="mode" value="baseline" />
+        <span class="mode-label baseline-label">
+          <strong>Baseline (No Memory)</strong>
+          <small>Analyses current check-in only — no history</small>
+        </span>
+      </label>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary btn-large">
+    Analyze Check-in →
+  </button>
+</form>
+{% endblock %}
