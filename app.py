@@ -101,8 +101,9 @@ def dashboard():
     hindsight_version = "unknown"
     try:
         hindsight_version = mem.get_version()
-    except Exception:
+    except Exception as exc:
         hindsight_ok = False
+        app.logger.warning("Hindsight version check failed: %s", exc)
 
     return render_template(
         "dashboard.html",
