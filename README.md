@@ -2,7 +2,7 @@
 
 > AI-powered clinical trial coordinator support, grounded in long-term memory via [Hindsight](https://hindsight.vectorize.io/).
 
-**🚀 Live Demo → [https://trialguard-dun.vercel.app](https://trialguard-dun.vercel.app)**
+**🚀 Live Demo → [https://trialguard-ten.vercel.app](https://trialguard-ten.vercel.app)**
 
 > Prototype for demonstration using synthetic data. Not for clinical use or medical decision-making.
 
@@ -347,7 +347,7 @@ TrialGuard/
 
 ## Deployment
 
-Live at **[https://trialguard-dun.vercel.app](https://trialguard-dun.vercel.app)**
+Live at **[https://trialguard-ten.vercel.app](https://trialguard-ten.vercel.app)**
 
 Deployed on Vercel via `Procfile`. Set all four environment variables in your Vercel project settings before deploying. The SQLite database resets on each cold start in serverless — Hindsight memory persists independently in the cloud regardless.
 
@@ -396,7 +396,7 @@ This system is a prototype built for demonstration. It uses entirely synthetic d
 
 ## Links
 
-- 🚀 **Live Demo:** [https://trialguard-dun.vercel.app](https://trialguard-dun.vercel.app)
+- 🚀 **Live Demo:** [https://trialguard-ten.vercel.app](https://trialguard-ten.vercel.app)
 - 🧠 **Hindsight Cloud:** [https://ui.hindsight.vectorize.io](https://ui.hindsight.vectorize.io)
 - 📖 **Hindsight Docs:** [https://hindsight.vectorize.io](https://hindsight.vectorize.io)
 - 💻 **Hindsight GitHub:** [https://github.com/vectorize-io/hindsight](https://github.com/vectorize-io/hindsight)
