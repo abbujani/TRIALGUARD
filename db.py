@@ -27,13 +27,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-load_dotenv()
-
 logger = logging.getLogger(__name__)
 
 _HERE    = Path(__file__).parent
-DB_PATH  = Path(os.environ.get("DB_PATH", str(_HERE / "data" / "trialguard.db")))
+
+def _default_db_path() -> Path:
+    # Vercel serverless filesystem is read-only except /tmp.
+    # Use /tmp when running on Vercel so SQLite writes don't crash.
+    # Explicit DB_PATH env var always wins (used by tests).
+    if os.environ.get("DB_PATH"):
+        return Path(os.environ["DB_PATH"])
+    if os.environ.get("VERCEL") == "1":
+        return Path("/tmp/trialguard.db")
+    return _HERE / "data" / "trialguard.db"
+
+DB_PATH  = _default_db_path()
 
 # ── Connection ────────────────────────────────────────────────────────────────
 

@@ -99,9 +99,9 @@ Ten synthetic participants with deliberate patterns:
 
 | ID | Pattern |
 |----|---------|
-| P402 | Recurring nausea after dosage |
+| **P402** ⭐ | Recurring nausea after dosage — hero demo participant |
 | P117 | No recurring issues |
-| **P209** ⭐ | Recurring headache pattern — hero demo participant |
+| P209 | Recurring headache pattern |
 | P314 | Persistent fatigue |
 | P501 | Issue resolved previously |
 | P607 | Conflicting historical records |
@@ -136,7 +136,7 @@ cp .env.example .env
 python seed_db.py
 
 # Seed P402 history into Hindsight (required for the demo)
-python seed_demo.py --participant P209
+python seed_demo.py --participant P402
 
 # Optional: seed all 10 participants
 python seed_demo.py

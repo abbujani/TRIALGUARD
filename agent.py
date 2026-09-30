@@ -127,13 +127,13 @@ def _execute_recall(
     The participant_id is ALWAYS the server-side enforced value — the LLM
     cannot redirect to a different participant (blueprint Section 23).
     """
-    extra_tags = None  # participant tag alone enforces isolation; trial tag over-constrains recall
+    extra_tags = [f"trial:{trial_id}"] if trial_id else None
     try:
         resp = mem.recall(
             query=query,
             participant_id=participant_id,
             max_tokens=3000,
-            budget="high",
+            budget="mid",
             extra_tags=extra_tags,
         )
         prompt_str = resp.to_prompt_string()
