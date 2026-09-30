@@ -1,0 +1,3631 @@
+﻿Below is the **complete implementation blueprint I would use for TrialGuard**, from an empty folder to a working hackathon submission.
+
+The design stays tightly aligned with the supplied hackathon brief: the project must use Hindsight, make persistent memory central to the solution, solve a real professional workflow, demonstrate the value within a short demo, and clearly explain how Hindsight is used.   The submission also requires a GitHub repository, demo video, live demo, the specified content deliverables, and an explanation of Hindsight's use. 
+
+# 1. First freeze the exact project scope
+
+Do **not** build a complete clinical-trial management platform.
+
+Your project should do one thing:
+
+> **Help clinical-trial coordinators understand a participant's current problem by retrieving relevant historical interactions, interventions, and outcomes from long-term memory.**
+
+### Primary persona
+
+**Clinical Trial Coordinator**
+
+### Primary entity
+
+**Participant**
+
+### Primary workflow
+
+```text
+New participant check-in
+        â†“
+Understand current issue
+        â†“
+Retrieve relevant participant history from Hindsight
+        â†“
+Connect current issue with historical events
+        â†“
+Surface previous outcomes
+        â†“
+Generate Coordinator Action Brief
+        â†“
+Retain the new interaction/outcome for future use
+```
+
+This is important because the official guide explicitly recommends **one workflow, one persona, and one clear value proposition**, rather than a huge prototype with many loosely connected features. 
+
+---
+
+# 2. What TrialGuard actually solves
+
+The central problem is **loss of longitudinal context**.
+
+A participant might interact with the clinical-trial team many times:
+
+```text
+Month 1
+   â†“
+Month 2
+   â†“
+Month 3
+   â†“
+Month 4
+   â†“
+Month 5
+   â†“
+Month 6
+```
+
+A current complaint may only make sense when viewed against that history.
+
+For example:
+
+```text
+Month 1
+Dosage increase
+      â†“
+Nausea reported
+      â†“
+Documented intervention
+      â†“
+Symptoms improved
+
+Month 3
+Another dosage increase
+
+Month 6
+Nausea returns
+Participant expresses frustration
+Participant considers leaving
+```
+
+The critical information is spread across months.
+
+A stateless LLM sees only:
+
+```text
+"Participant reports severe nausea and wants to leave."
+```
+
+TrialGuard sees:
+
+```text
+Current event
+      +
+Month 1 memory
+      +
+Month 2 outcome
+      +
+Month 3 dosage event
+      â†“
+Historical context
+```
+
+That is your entire product story.
+
+---
+
+# 3. Define what the agent is allowed to do
+
+This should be fixed **before writing code**.
+
+TrialGuard **can**:
+
+* identify the current issue from a check-in;
+* retrieve relevant historical memories;
+* connect events across time;
+* surface previous documented interventions and outcomes;
+* identify that a similar event occurred previously;
+* create a coordinator-facing summary;
+* flag information for review or escalation according to the trial/site process.
+
+TrialGuard **must not**:
+
+* diagnose the participant;
+* prescribe treatment;
+* independently change a medication dosage;
+* claim that an event caused another event merely because they occurred sequentially;
+* decide whether a participant should remain in the trial;
+* tell a participant to ignore symptoms;
+* invent missing historical events.
+
+So instead of:
+
+> "Change the participant's dosage."
+
+the system says:
+
+> **"A similar event followed a previous dosage increase. A previously documented intervention was associated with improvement. Review this historical context with the appropriate clinical team."**
+
+This keeps the project as **decision support**, not autonomous medical decision-making.
+
+Also put this visibly in the prototype:
+
+> **Prototype for hackathon demonstration using synthetic data. Not for clinical use or medical decision-making.**
+
+---
+
+# 4. The architecture you should build
+
+I recommend this stack:
+
+| Layer                | Technology                                |
+| -------------------- | ----------------------------------------- |
+| Frontend             | HTML + CSS + JavaScript                   |
+| Backend              | Python Flask                              |
+| Application database | SQLite                                    |
+| Agent LLM            | Groq                                      |
+| Long-term memory     | Hindsight Cloud                           |
+| Validation           | Pydantic                                  |
+| Secrets              | `.env`                                    |
+| Hosting              | Any Python-compatible deployment platform |
+
+This is deliberately simple.
+
+You do **not** need React, Node.js, Spring Boot, MySQL, Docker, or a large agent framework to demonstrate the concept.
+
+The important external components are Hindsight and the LLM.
+
+The hackathon explicitly says Hindsight is mandatory and allows either Hindsight Cloud or the open-source version. 
+
+For this project, I would use **Hindsight Cloud** because it removes a large amount of infrastructure work.
+
+---
+
+# 5. Why Hindsight Cloud is the better implementation route
+
+The current Hindsight Cloud documentation provides a Python client:
+
+```text
+pip install hindsight-client
+```
+
+and connects using:
+
+```python
+from hindsight_client import Hindsight
+
+client = Hindsight(
+    base_url="https://api.hindsight.vectorize.io",
+    api_key="your-api-key"
+)
+```
+
+The Cloud setup also supports creating a memory bank and then using `retain`, `recall`, and related operations. ([Hindsight Cloud][1])
+
+The official documentation currently exposes the Hindsight Cloud API as version 0.10.1. ([Hindsight API][2])
+
+### Hindsight provides three operations that matter here
+
+**Retain**
+
+Store information in memory.
+
+**Recall**
+
+Retrieve relevant memories.
+
+**Reflect**
+
+Reason over remembered information and synthesize an answer. ([GitHub][3])
+
+For TrialGuard, your main loop should be:
+
+```text
+RETAIN â†’ RECALL â†’ LLM ANALYSIS â†’ RETAIN OUTCOME
+```
+
+You can optionally use `reflect` for deeper memory analysis later.
+
+---
+
+# 6. Create the project folder
+
+On Windows:
+
+```powershell
+mkdir TrialGuard
+cd TrialGuard
+
+py -m venv .venv
+.venv\Scripts\activate
+```
+
+Then:
+
+```powershell
+pip install flask hindsight-client groq python-dotenv pydantic
+```
+
+Create:
+
+```text
+TrialGuard/
+â”‚
+â”œâ”€â”€ app.py
+â”œâ”€â”€ agent.py
+â”œâ”€â”€ hindsight_service.py
+â”œâ”€â”€ groq_service.py
+â”œâ”€â”€ db.py
+â”œâ”€â”€ prompts.py
+â”œâ”€â”€ seed_demo.py
+â”œâ”€â”€ models.py
+â”‚
+â”œâ”€â”€ requirements.txt
+â”œâ”€â”€ .env
+â”œâ”€â”€ .env.example
+â”œâ”€â”€ .gitignore
+â”‚
+â”œâ”€â”€ data/
+â”‚   â””â”€â”€ trialguard.db
+â”‚
+â”œâ”€â”€ templates/
+â”‚   â”œâ”€â”€ base.html
+â”‚   â”œâ”€â”€ dashboard.html
+â”‚   â”œâ”€â”€ participant.html
+â”‚   â”œâ”€â”€ checkin.html
+â”‚   â””â”€â”€ result.html
+â”‚
+â”œâ”€â”€ static/
+â”‚   â”œâ”€â”€ style.css
+â”‚   â””â”€â”€ script.js
+â”‚
+â””â”€â”€ tests/
+    â”œâ”€â”€ test_hindsight.py
+    â”œâ”€â”€ test_agent.py
+    â””â”€â”€ test_safety.py
+```
+
+---
+
+# 7. Set up Hindsight Cloud
+
+Create a Hindsight Cloud account and an API key.
+
+The current Cloud instructions say API keys are created through the Hindsight Cloud interface and the key is shown only when created, so it needs to be copied and stored securely. ([Hindsight Cloud][1])
+
+Create one bank:
+
+```text
+trialguard-demo
+```
+
+Your `.env`:
+
+```env
+HINDSIGHT_BASE_URL=https://api.hindsight.vectorize.io
+HINDSIGHT_API_KEY=YOUR_KEY
+HINDSIGHT_BANK_ID=trialguard-demo
+
+GROQ_API_KEY=YOUR_KEY
+```
+
+`.gitignore`:
+
+```text
+.env
+.venv/
+__pycache__/
+data/*.db
+```
+
+Never put either API key into GitHub.
+
+---
+
+# 8. Create the Hindsight service
+
+Create:
+
+```text
+hindsight_service.py
+```
+
+Its job should be **only Hindsight-related work**.
+
+Conceptually:
+
+```python
+import os
+from hindsight_client import Hindsight
+
+client = Hindsight(
+    base_url=os.environ["HINDSIGHT_BASE_URL"],
+    api_key=os.environ["HINDSIGHT_API_KEY"]
+)
+
+BANK_ID = os.environ["HINDSIGHT_BANK_ID"]
+```
+
+Then create three functions:
+
+```text
+retain_checkin()
+recall_patient_history()
+retain_outcome()
+```
+
+Keeping these separate will make your architecture easy for judges to understand.
+
+---
+
+# 9. Design your memory structure properly
+
+This is one of the most important technical decisions.
+
+Don't blindly send random JSON or raw database rows into Hindsight.
+
+Hindsight's `retain` operation processes the supplied content, extracts structured memories, identifies entities and relationships, and indexes the information. ([Hindsight Cloud][4])
+
+So give it **clear, meaningful event narratives**.
+
+For example:
+
+```text
+Participant P402.
+Trial: TRIAL-001.
+Date: 2026-03-10.
+
+Participant reported nausea following a recent dosage increase.
+The participant described symptoms as moderate.
+A meal-timing intervention was documented.
+At the subsequent follow-up, symptoms were reported as improved.
+```
+
+This gives Hindsight useful information about:
+
+```text
+participant
+date
+symptom
+event
+intervention
+outcome
+relationship
+```
+
+---
+
+# 10. Use timestamps aggressively
+
+This project is fundamentally temporal.
+
+Hindsight's current documentation says timestamps enable temporal retrieval and that temporal context should be provided when available. ([GitHub][5])
+
+Every event therefore gets:
+
+```text
+occurred_at
+```
+
+For example:
+
+```text
+2026-03-10T10:00:00Z
+```
+
+Then when asking Hindsight about the Month 6 event, provide an appropriate `query_timestamp`.
+
+This allows the system to reason about:
+
+```text
+before
+after
+recently
+months earlier
+previous episode
+subsequent outcome
+```
+
+---
+
+# 11. Use tags to isolate participants
+
+This is another important engineering decision.
+
+Suppose the bank contains:
+
+```text
+P101
+P204
+P402
+P503
+```
+
+You do not want a query about P402 to accidentally retrieve P204's memories.
+
+Use tags such as:
+
+```text
+participant:P402
+trial:TRIAL-001
+```
+
+For a memory:
+
+```python
+tags=[
+    "participant:P402",
+    "trial:TRIAL-001"
+]
+```
+
+When recalling:
+
+```python
+tags=[
+    "participant:P402",
+    "trial:TRIAL-001"
+]
+```
+
+and use strict matching.
+
+Hindsight currently supports tag filtering with modes including `all_strict`, which excludes untagged memories and requires all specified tags to match. ([GitHub][5])
+
+For your prototype this means:
+
+```text
+Participant P402
+      â†“
+participant:P402
+      +
+trial:TRIAL-001
+      â†“
+Only P402 / TRIAL-001 memories
+```
+
+This also gives you something technically impressive to explain to judges.
+
+---
+
+# 12. Attach metadata
+
+Use metadata such as:
+
+```text
+participant_id
+trial_id
+event_type
+source
+checkin_id
+```
+
+Hindsight's Python client supports metadata, tags, context, timestamps, and document IDs on retained content. ([GitHub][6])
+
+For example:
+
+```python
+metadata={
+    "participant_id": "P402",
+    "trial_id": "TRIAL-001",
+    "event_type": "checkin",
+    "source": "synthetic_demo"
+}
+```
+
+---
+
+# 13. Give every event a stable document ID
+
+For example:
+
+```text
+checkin:P402:001
+checkin:P402:002
+checkin:P402:003
+```
+
+Hindsight's documentation recommends stable document identifiers rather than generating a new random ID on every write, which can create duplicates. Reusing a document ID can also be used to replace an earlier document where appropriate. ([GitHub][5])
+
+For your project:
+
+```python
+document_id=f"checkin:{participant_id}:{checkin_id}"
+```
+
+---
+
+# 14. What goes into SQLite versus Hindsight?
+
+Use **both**, but for different purposes.
+
+### SQLite
+
+Store the application's exact records:
+
+```text
+participants
+checkins
+outcomes
+agent_runs
+```
+
+### Hindsight
+
+Store the information the agent needs to remember and retrieve:
+
+```text
+participant events
+historical symptoms
+interventions
+outcomes
+important interaction context
+```
+
+This distinction is useful because the Hindsight documentation explains that the retained content is transformed into extracted memories rather than simply being treated as a verbatim document store. ([Hindsight Cloud][4])
+
+So:
+
+```text
+SQLite = application record
+Hindsight = agent memory
+```
+
+That is a very clean architecture.
+
+---
+
+# 15. Database design
+
+You only need a few tables.
+
+### `participants`
+
+```text
+id
+display_name
+trial_id
+status
+created_at
+```
+
+Example:
+
+```text
+P402
+Participant 402
+TRIAL-001
+Active
+```
+
+### `checkins`
+
+```text
+id
+participant_id
+occurred_at
+raw_text
+created_at
+```
+
+### `outcomes`
+
+```text
+id
+participant_id
+checkin_id
+occurred_at
+description
+outcome_text
+```
+
+### `agent_runs`
+
+```text
+id
+checkin_id
+mode
+hindsight_query
+retrieved_memories
+final_output
+created_at
+```
+
+`agent_runs` is useful because it lets you show judges:
+
+> "Here is exactly what the agent retrieved and what it generated."
+
+---
+
+# 16. Create realistic synthetic data
+
+The official hackathon guide explicitly allows synthetic data when real data isn't available and recommends making it realistic. 
+
+Do **not** use real patient information.
+
+Build a small synthetic clinical-trial dataset.
+
+I'd use:
+
+```text
+10 participants
+4â€“6 months of history
+4â€“8 interactions per participant
+```
+
+Don't make all participants exhibit the same pattern.
+
+You need:
+
+### Positive memory case
+
+```text
+P402
+Dosage increase
+â†’ nausea
+â†’ documented intervention
+â†’ improved
+â†’ later dosage increase
+â†’ nausea returns
+```
+
+### No-history case
+
+```text
+P207
+First occurrence of headache
+```
+
+Hindsight should say:
+
+> No relevant historical event found.
+
+### Similar-but-different case
+
+```text
+P311
+Nausea occurred previously,
+but after missed meals rather than dosage change.
+```
+
+This prevents your agent from simply equating:
+
+```text
+nausea = dosage problem
+```
+
+### Conflicting history case
+
+```text
+One historical note says symptoms improved.
+Another later note says symptoms persisted.
+```
+
+The agent should respond:
+
+> Historical records contain conflicting outcomes; verify the source record.
+
+That makes your system much more credible.
+
+---
+
+# 17. Your hero participant
+
+Make **P402** the central demo participant.
+
+Create this timeline:
+
+```text
+MONTH 1
+Dosage increase
+â†“
+Nausea reported
+â†“
+Intervention documented
+â†“
+Symptoms improved
+
+MONTH 3
+Second dosage increase
+
+MONTH 4
+No significant issue reported
+
+MONTH 6
+Nausea returns
+â†“
+Participant frustrated
+â†“
+Participant considers withdrawal
+```
+
+This is your entire hackathon story.
+
+---
+
+# 18. Implement the retain operation
+
+Conceptually:
+
+```python
+def retain_checkin(
+    participant_id,
+    trial_id,
+    checkin_id,
+    occurred_at,
+    text
+):
+    content = f"""
+    Participant: {participant_id}
+    Trial: {trial_id}
+    Date: {occurred_at}
+
+    Participant check-in:
+    {text}
+    """
+
+    client.retain(
+        bank_id=BANK_ID,
+        content=content,
+        context="clinical_trial_checkin",
+        timestamp=occurred_at,
+        document_id=f"checkin:{participant_id}:{checkin_id}",
+        metadata={
+            "participant_id": participant_id,
+            "trial_id": trial_id,
+            "event_type": "checkin"
+        },
+        tags=[
+            f"participant:{participant_id}",
+            f"trial:{trial_id}"
+        ]
+    )
+```
+
+This gives Hindsight a meaningful, timestamped event.
+
+---
+
+# 19. Retain the outcome too
+
+This is critical.
+
+Suppose after the Month 1 issue, the coordinator later records:
+
+> "At follow-up, participant reports symptoms improved."
+
+Don't merely store the original problem.
+
+Store the **outcome** as a separate memory.
+
+For example:
+
+```text
+Participant P402.
+Follow-up after earlier nausea episode.
+The historical record states that symptoms improved after the documented intervention.
+```
+
+Now the memory sequence is:
+
+```text
+Problem
+   â†“
+Intervention
+   â†“
+Outcome
+```
+
+This is much more valuable than:
+
+```text
+Problem
+```
+
+---
+
+# 20. Build the Hindsight recall function
+
+Your recall function should ask a **specific longitudinal question**.
+
+Not:
+
+```text
+"Tell me about P402."
+```
+
+Instead:
+
+```text
+"Find relevant historical interactions for Participant P402
+related to nausea, dosage changes, interventions, symptom outcomes,
+withdrawal concerns, and similar recurring issues."
+```
+
+Then call Hindsight:
+
+```python
+result = client.recall(
+    bank_id=BANK_ID,
+    query=query,
+    budget="mid",
+    max_tokens=3000,
+    query_timestamp=occurred_at,
+    tags=[
+        f"participant:{participant_id}",
+        f"trial:{trial_id}"
+    ],
+    tags_match="all_strict",
+    include_chunks=True,
+    include_source_facts=True
+)
+```
+
+Current Hindsight Recall uses semantic, keyword, graph, and temporal retrieval together, then fuses and reranks results. ([Hindsight Cloud][7])
+
+That is excellent material for your technical explanation.
+
+You can literally tell judges:
+
+> **"Our retrieval isn't just vector similarity. Hindsight combines semantic, keyword, graph, and temporal retrieval to find the historical context relevant to the current event."**
+
+That is a much stronger explanation than saying "we used a vector database."
+
+---
+
+# 21. Why `include_chunks=True` is useful
+
+Hindsight generally returns structured memories.
+
+For a hackathon demo, you also want to show where the memory came from.
+
+The current documentation recommends `include_chunks=True` when the agent needs the original source text, and `include_source_facts=True` when you want provenance for observation-based memories. ([GitHub][8])
+
+That allows your UI to show:
+
+```text
+Hindsight Memory
+
+Month 1
+"Participant reported nausea after dosage increase..."
+
+Source:
+checkin:P402:001
+```
+
+Now the judge can see the memory is **traceable**, not magically invented.
+
+---
+
+# 22. Turn the LLM into an actual agent
+
+Don't simply do:
+
+```text
+User text â†’ LLM â†’ response
+```
+
+Use a tool-calling loop.
+
+The agent gets access to:
+
+```text
+recall_patient_history()
+```
+
+Conceptually:
+
+```text
+Coordinator submits check-in
+          â†“
+        LLM
+          â†“
+Does historical context matter?
+          â†“
+        YES
+          â†“
+recall_patient_history()
+          â†“
+      Hindsight
+          â†“
+historical memories
+          â†“
+        LLM
+          â†“
+Coordinator Action Brief
+```
+
+Groq's current documentation supports local function/tool calling, where the model requests a tool, your application executes it, and the result is sent back to the model for the final answer. ([GroqCloud][9])
+
+That is the agentic loop you want.
+
+---
+
+# 23. Define the Hindsight tool
+
+Conceptually:
+
+```text
+Tool: recall_patient_history
+
+Purpose:
+Retrieve relevant historical memories for a specific participant.
+
+Inputs:
+participant_id
+trial_id
+query
+current_timestamp
+```
+
+Important:
+
+**Do not trust the participant ID generated by the LLM.**
+
+Your Flask route already knows:
+
+```text
+participant_id = P402
+```
+
+So your backend should enforce:
+
+```text
+tool participant_id = request participant_id
+```
+
+rather than blindly executing whatever ID the model requests.
+
+---
+
+# 24. Your system prompt
+
+Create:
+
+```text
+prompts.py
+```
+
+The core instructions should look like:
+
+```text
+You are TrialGuard, an AI support agent for clinical-trial coordinators.
+
+Your task is to analyze participant check-ins and retrieve relevant
+historical context using the Hindsight memory tool.
+
+You must:
+1. Ground every historical claim in retrieved memory.
+2. Prefer documented facts over assumptions.
+3. Distinguish current information from historical information.
+4. State when no relevant historical memory was found.
+5. Identify recurring patterns only when the evidence supports them.
+6. Never invent a historical event or outcome.
+7. Never diagnose a participant.
+8. Never independently prescribe treatment or change dosage.
+9. Never state that one event caused another unless causality is explicitly documented.
+10. Surface relevant information for coordinator/clinical-team review.
+11. Escalate urgent safety concerns according to the applicable trial/site protocol.
+12. Use synthetic-demo framing when appropriate.
+
+Your role is decision support, not clinical decision-making.
+```
+
+---
+
+# 25. The most important prompt instruction
+
+Add:
+
+> **"Do not convert correlation into causation."**
+
+Suppose Hindsight retrieves:
+
+```text
+March 10 â€“ dosage increased
+March 12 â€“ nausea reported
+```
+
+The model must **not** automatically say:
+
+> "The dosage caused nausea."
+
+Instead:
+
+> "Nausea was documented shortly after a dosage increase."
+
+That distinction makes your system much more rigorous.
+
+---
+
+# 26. Final output structure
+
+Don't ask the final LLM for an unrestricted paragraph.
+
+Have it generate a structured object.
+
+Something like:
+
+```json
+{
+  "current_issue": "...",
+  "participant_concern": "...",
+  "historical_matches": [
+    {
+      "date": "...",
+      "event": "...",
+      "relevance": "..."
+    }
+  ],
+  "historical_pattern": "...",
+  "previous_outcome": "...",
+  "recommended_coordinator_action": "...",
+  "safety_note": "..."
+}
+```
+
+This makes your UI predictable.
+
+Groq currently supports Structured Outputs with JSON Schema, including strict schema enforcement on supported models. Its documentation also notes that Structured Outputs and tool use are not currently supported together in the same request. ([GroqCloud][10])
+
+That suggests a clean architecture:
+
+```text
+LLM call #1
+Tool-calling agent
+       â†“
+Hindsight recall
+       â†“
+LLM call #2
+Structured JSON final answer
+```
+
+This separation is preferable to trying to force tool calling and structured output into one request.
+
+---
+
+# 27. The two-stage agent architecture
+
+Your implementation should therefore look like this:
+
+```text
+              CURRENT CHECK-IN
+                     â”‚
+                     â–¼
+           â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+           â”‚  Agent LLM Call 1 â”‚
+           â”‚ "Do I need memory?"â”‚
+           â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                     â”‚
+             tool call required
+                     â”‚
+                     â–¼
+           â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+           â”‚ recall_patient_   â”‚
+           â”‚ history()         â”‚
+           â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                     â”‚
+                     â–¼
+               HINDSIGHT
+                     â”‚
+       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+       â–¼             â–¼             â–¼
+    semantic       keyword       graph
+                     +
+                  temporal
+                     â”‚
+                     â–¼
+              ranked memories
+                     â”‚
+                     â–¼
+           â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+           â”‚  Agent LLM Call 2 â”‚
+           â”‚ Structured output â”‚
+           â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                     â”‚
+                     â–¼
+            COORDINATOR BRIEF
+```
+
+This is the architecture I would actually demo.
+
+---
+
+# 28. The critical Hindsight learning loop
+
+The agent must also **write new useful information back**.
+
+Suppose the Month 6 issue is eventually resolved.
+
+You record:
+
+```text
+Participant P402.
+Follow-up interaction.
+The historical issue was reviewed by the clinical team.
+The documented outcome was that symptoms improved.
+```
+
+Retain that outcome.
+
+Now your memory evolves:
+
+```text
+Month 1
+   â†“
+Problem
+   â†“
+Intervention
+   â†“
+Outcome
+
+Month 3
+   â†“
+Another relevant event
+
+Month 6
+   â†“
+New problem
+   â†“
+Historical memory retrieved
+   â†“
+Current resolution
+   â†“
+NEW MEMORY
+```
+
+This is what makes the system longitudinal.
+
+Hindsight's current learning architecture also supports automatically consolidated **observations** and manually curated **mental models** in addition to raw facts.
+
+You don't need to build a complicated custom learning algorithm for the hackathon. Your application-level learning loop is already:
+
+```text
+experience â†’ outcome â†’ memory â†’ future retrieval
+```
+
+---
+
+# 29. Build a baseline mode
+
+This is **essential for your hackathon demo**.
+
+Create:
+
+```text
+mode=baseline
+mode=hindsight
+```
+
+### Baseline
+
+```text
+Current check-in
+       â†“
+LLM
+       â†“
+Response
+```
+
+### Hindsight
+
+```text
+Current check-in
+       â†“
+LLM
+       â†“
+Hindsight recall
+       â†“
+Historical context
+       â†“
+LLM
+       â†“
+Action Brief
+```
+
+The hackathon explicitly asks projects to make the difference between memoryless and memory-powered behavior visible. 
+
+This comparison is therefore worth building into the UI.
+
+---
+
+# 30. Example baseline result
+
+Input:
+
+> "Participant P402 reports severe nausea again and says they are considering leaving the study."
+
+Baseline might produce:
+
+```text
+Participant reports significant discomfort and is considering withdrawal.
+The coordinator should follow the applicable trial procedures and review
+the participant's concerns with the appropriate team.
+```
+
+That response isn't necessarily wrong.
+
+That's important.
+
+Your project should **not manufacture an obviously stupid baseline** just to make Hindsight look good.
+
+Instead, make the baseline reasonably competent but lacking historical context.
+
+---
+
+# 31. Example Hindsight result
+
+```text
+CURRENT ISSUE
+
+Participant P402 reports recurring nausea and expresses frustration
+about continuing the trial.
+
+HISTORICAL CONTEXT
+
+Month 1:
+Nausea was documented after a dosage increase.
+
+Month 2:
+A documented intervention was followed by reported symptom improvement.
+
+Month 3:
+Another dosage increase was recorded.
+
+PATTERN
+
+The current complaint resembles an earlier episode that occurred
+following dosage escalation.
+
+PREVIOUS OUTCOME
+
+The historical record indicates improvement following the previously
+documented intervention.
+
+COORDINATOR ACTION
+
+Review the historical episode and previous outcome with the appropriate
+clinical team and follow the applicable trial/site procedures.
+
+SAFETY NOTE
+
+This system does not diagnose or prescribe treatment.
+```
+
+That's your **hero output**.
+
+---
+
+# 32. The UI you should build
+
+Keep it simple.
+
+## Dashboard
+
+Display:
+
+```text
+TRIALGUARD
+
+Active Participants
+10
+
+Recent Check-ins
+...
+
+Historical Patterns Detected
+...
+
+Start New Check-in
+```
+
+---
+
+## Participant page
+
+For P402:
+
+```text
+Participant 402
+Trial TRIAL-001
+Status: Active
+
+TIMELINE
+
+Month 1
+Dosage increase
+Nausea
+
+Month 2
+Symptoms improved
+
+Month 3
+Dosage increase
+
+Month 4
+Routine check-in
+
+Month 6
+Nausea returns
+```
+
+---
+
+# 33. Check-in page
+
+Create a simple form:
+
+```text
+Participant
+[P402 â–¼]
+
+Date
+[2026-09-28]
+
+Check-in
+[________________________________]
+[________________________________]
+
+[Analyze Check-in]
+```
+
+After submitting:
+
+```text
+Current issue detected
+â†“
+Hindsight retrieval
+â†“
+Action brief
+```
+
+---
+
+# 34. Result page
+
+This should be your most polished screen.
+
+Structure:
+
+```text
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ CURRENT CHECK-IN                    â”‚
+â”‚ Severe nausea / considering leaving â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+
+                â†“
+
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ HINDSIGHT MEMORY                    â”‚
+â”‚                                     â”‚
+â”‚ âœ“ Month 1 â€” Similar nausea          â”‚
+â”‚ âœ“ Month 2 â€” Outcome documented      â”‚
+â”‚ âœ“ Month 3 â€” Dosage event            â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+
+                â†“
+
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ HISTORICAL PATTERN                  â”‚
+â”‚ Similar issue occurred previously   â”‚
+â”‚ after a dosage escalation.          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+
+                â†“
+
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ COORDINATOR ACTION BRIEF            â”‚
+â”‚ Review historical context...        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+---
+
+# 35. Show the actual memories
+
+Do not hide Hindsight behind the final answer.
+
+Include:
+
+```text
+Why did TrialGuard say this?
+
+Hindsight Memories Retrieved
+```
+
+Then:
+
+```text
+1. Month 1
+   "Participant reported nausea following..."
+   
+2. Month 2
+   "At follow-up, symptoms were reported..."
+   
+3. Month 3
+   "Another dosage increase was recorded..."
+```
+
+This is important because the hackathon specifically requires a clear demonstration of how Hindsight is being used. 
+
+---
+
+# 36. Show the memory retrieval visually
+
+You can have:
+
+```text
+Current Check-in
+       â†“
+Hindsight Recall
+       â†“
+3 relevant memories found
+       â†“
+Temporal relationship detected
+       â†“
+Action Brief
+```
+
+And perhaps show:
+
+```text
+Semantic      âœ“
+Keyword       âœ“
+Graph         âœ“
+Temporal      âœ“
+```
+
+Hindsight currently documents these four retrieval strategies as part of Recall. ([Hindsight Cloud][7])
+
+Don't fake individual retrieval results, though. If you display those labels, make it clear that they describe Hindsight's retrieval architecture rather than claiming that every individual memory came from each strategy.
+
+---
+
+# 37. Create a "Memory Trace" mode
+
+For development, let the backend call:
+
+```python
+trace=True
+```
+
+when using Recall.
+
+The current Python client supports recall tracing and exposes metadata such as memory type, context, tags, entities, timestamps, document IDs, and chunks. ([GitHub][6])
+
+Your developer/debug UI can show:
+
+```text
+QUERY
+Find previous nausea and dosage-related events for P402
+
+MEMORIES
+...
+
+DOCUMENT IDS
+...
+
+Timestamps
+...
+
+Tags
+...
+```
+
+Don't necessarily expose all of this in the judge-facing main screen. Keep it as a "Memory Details" drawer.
+
+---
+
+# 38. Don't create your own vector database
+
+This is an important architectural decision.
+
+Do **not** add:
+
+```text
+FAISS
+Chroma
+Pinecone
+Weaviate
+pgvector
+```
+
+just because you think every AI application needs one.
+
+Hindsight itself is the memory layer.
+
+Adding another retrieval system would make it harder to prove that **Hindsight is actually central**.
+
+Your architecture should clearly say:
+
+```text
+SQLite
+= application state
+
+Hindsight
+= persistent agent memory
+
+Groq
+= reasoning / generation
+```
+
+---
+
+# 39. Don't create a complicated ML model
+
+You don't need to train:
+
+```text
+dropout prediction model
+symptom classifier
+medical diagnosis model
+```
+
+The project is fundamentally an **AI-agent + memory** project.
+
+The value comes from:
+
+```text
+Memory
++
+Retrieval
++
+Temporal reasoning
++
+LLM synthesis
+```
+
+not from training your own neural network.
+
+---
+
+# 40. Don't overload the agent with tools
+
+For the MVP, give it essentially:
+
+```text
+recall_patient_history()
+```
+
+and optionally:
+
+```text
+get_exact_source_record()
+```
+
+That's enough.
+
+A large tool set would distract from the core demonstration.
+
+---
+
+# 41. Add the exact-source lookup as an optional second tool
+
+This is a particularly good improvement.
+
+### Tool 1
+
+```text
+recall_patient_history()
+```
+
+Hindsight determines relevant memories.
+
+### Tool 2
+
+```text
+get_source_record(checkin_id)
+```
+
+SQLite returns the exact original record.
+
+Then:
+
+```text
+Hindsight:
+"Historical nausea episode occurred."
+
+SQLite:
+Original check-in text
+
+LLM:
+Combines both
+```
+
+This gives you:
+
+```text
+memory retrieval
++
+source verification
+```
+
+and makes the system more auditable.
+
+---
+
+# 42. Handle the "no memory" case
+
+This must work perfectly.
+
+Suppose:
+
+```text
+P207 reports a new symptom never seen before.
+```
+
+Hindsight returns nothing useful.
+
+Your agent must say:
+
+> **"No relevant historical memory was found for this participant and issue."**
+
+Not:
+
+> "This is the participant's first episode."
+
+Unless you actually have complete records proving that.
+
+This is a very important distinction.
+
+---
+
+# 43. Handle conflicting memories
+
+Suppose Hindsight finds:
+
+```text
+Month 1:
+Symptoms improved.
+
+Month 2:
+Symptoms persisted.
+```
+
+Do not make the LLM choose one.
+
+Generate:
+
+> **"Historical records contain differing reports regarding the outcome. The source records should be reviewed before drawing a conclusion."**
+
+This demonstrates that your agent isn't simply hallucinating a neat story.
+
+---
+
+# 44. Handle urgent language
+
+Create a rule such as:
+
+If the participant says something resembling:
+
+```text
+"I am having severe trouble breathing."
+"I feel like I may collapse."
+"I need emergency help."
+```
+
+the agent should not start searching for a historical intervention and casually recommend it.
+
+Instead:
+
+```text
+Potential urgent safety concern detected.
+Follow the applicable trial/site emergency or escalation procedure
+and involve the appropriate clinical personnel.
+```
+
+Historical memory can still be shown, but it should not override immediate protocol.
+
+---
+
+# 45. Add safety gates before final output
+
+I would put a deterministic safety layer between the LLM and the UI.
+
+For example:
+
+```text
+LLM Output
+    â†“
+Safety validator
+    â†“
+Allowed?
+  /     \
+YES      NO
+ |        |
+UI      Replace with safe fallback
+```
+
+The validator can check for prohibited patterns such as:
+
+```text
+increase dosage
+decrease dosage
+stop medication
+diagnose
+prescribe
+guaranteed cause
+continue medication
+```
+
+This isn't a medical model.
+
+It is simply a **guardrail against the agent crossing its defined role**.
+
+---
+
+# 46. Build the backend route
+
+Your Flask application could have routes such as:
+
+```text
+GET /
+GET /dashboard
+
+GET /participants/<participant_id>
+
+GET /participants/<participant_id>/checkin
+
+POST /participants/<participant_id>/analyze
+
+GET /runs/<run_id>
+```
+
+The important route is:
+
+```text
+POST /participants/<id>/analyze
+```
+
+Workflow:
+
+```text
+Receive check-in
+       â†“
+Validate input
+       â†“
+Save SQLite
+       â†“
+Retain in Hindsight
+       â†“
+Run agent
+       â†“
+Recall Hindsight memories
+       â†“
+Generate final structured result
+       â†“
+Save agent run
+       â†“
+Display result
+```
+
+---
+
+# 47. The complete request lifecycle
+
+Let's follow P402 through the actual application.
+
+### Step 1
+
+Coordinator submits:
+
+```text
+Participant:
+P402
+
+Check-in:
+"I'm having severe nausea again and I'm thinking about leaving."
+```
+
+### Step 2
+
+Flask validates:
+
+```text
+participant exists
+trial exists
+check-in isn't empty
+timestamp valid
+```
+
+### Step 3
+
+SQLite stores exact record.
+
+### Step 4
+
+Hindsight retains the event.
+
+### Step 5
+
+Groq agent receives:
+
+```text
+Current check-in
++
+instruction
++
+recall_patient_history tool
+```
+
+### Step 6
+
+The agent requests:
+
+```text
+recall_patient_history(
+    participant=P402,
+    query="previous nausea, dosage changes, interventions and outcomes"
+)
+```
+
+### Step 7
+
+Your backend calls Hindsight.
+
+### Step 8
+
+Hindsight returns historical memories.
+
+### Step 9
+
+Your backend gives those memories back to the LLM.
+
+### Step 10
+
+The second LLM call creates structured output.
+
+### Step 11
+
+Safety validator checks the output.
+
+### Step 12
+
+The result is displayed.
+
+### Step 13
+
+The completed interaction/outcome is retained for future retrieval.
+
+That is your complete agent lifecycle.
+
+---
+
+# 48. How the data should flow
+
+Your final architecture should be:
+
+```text
+                       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                       â”‚   Coordinator â”‚
+                       â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚
+                               â–¼
+                       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                       â”‚     Flask     â”‚
+                       â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚
+                 â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                 â”‚                          â”‚
+                 â–¼                          â–¼
+          â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”            â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+          â”‚   SQLite    â”‚            â”‚ Agent / LLM â”‚
+          â”‚ exact data  â”‚            â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”˜
+          â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                   â”‚
+                                            â–¼
+                                    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                                    â”‚  Hindsight  â”‚
+                                    â”‚ long memory â”‚
+                                    â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”˜
+                                           â”‚
+                                           â–¼
+                                    Historical context
+                                           â”‚
+                                           â–¼
+                                     Agent reasoning
+                                           â”‚
+                                           â–¼
+                                    Safety validation
+                                           â”‚
+                                           â–¼
+                                    Action Brief
+```
+
+---
+
+# 49. Seed the demo automatically
+
+Create:
+
+```text
+seed_demo.py
+```
+
+Running:
+
+```powershell
+python seed_demo.py
+```
+
+should:
+
+1. Create SQLite tables.
+2. Create 10 synthetic participants.
+3. Insert their check-ins.
+4. Retain important history in Hindsight.
+5. Verify recall.
+6. Print:
+
+```text
+Demo data seeded successfully.
+
+Participants: 10
+Check-ins: 57
+Hindsight memories: seeded
+Hero participant: P402
+```
+
+That makes your demo reproducible.
+
+---
+
+# 50. Your demo dataset should tell a story
+
+Don't create random fake information.
+
+Design each participant deliberately.
+
+For example:
+
+| Participant | Pattern                                     |
+| ----------- | ------------------------------------------- |
+| P402        | recurring nausea after dosage events        |
+| P117        | no recurring issue                          |
+| P209        | headache pattern                            |
+| P314        | fatigue pattern                             |
+| P501        | issue resolved previously                   |
+| P607        | conflicting historical outcome              |
+| P722        | first-time issue                            |
+| P811        | unrelated similar symptom                   |
+| P905        | multiple benign check-ins                   |
+| P990        | withdrawal concern with no relevant history |
+
+Now you can test whether memory actually improves the agent.
+
+---
+
+# 51. Test the memory retrieval itself before building the UI
+
+This saves you a lot of time.
+
+Create a script:
+
+```text
+test_memory.py
+```
+
+Run:
+
+```text
+Query:
+P402 nausea after dosage increase
+```
+
+You should see something resembling:
+
+```text
+1. Month 1 nausea after dosage increase
+2. Month 2 symptoms improved
+3. Month 3 dosage increase
+```
+
+Then:
+
+```text
+Query:
+P207 nausea
+```
+
+You should get either:
+
+```text
+No relevant memory
+```
+
+or unrelated memories excluded by strict participant tags.
+
+Don't move forward until this works.
+
+---
+
+# 52. Test temporal retrieval
+
+Ask:
+
+```text
+What happened to P402 before the Month 6 check-in
+regarding nausea and dosage changes?
+```
+
+The results should preferentially bring earlier events.
+
+Hindsight's Recall explicitly supports temporal reasoning and query timestamps. ([Hindsight Cloud][7])
+
+This is an excellent technical feature to mention in your presentation.
+
+---
+
+# 53. Test participant isolation
+
+This should be a formal test.
+
+Seed:
+
+```text
+P402 â†’ nausea
+P207 â†’ headache
+```
+
+Search for:
+
+```text
+P402 nausea
+```
+
+The response should never contain:
+
+```text
+P207's data
+```
+
+Use:
+
+```text
+participant:P402
+trial:TRIAL-001
+```
+
+with strict tag matching.
+
+This is one of the simplest technical safeguards you can demonstrate. Hindsight's current documentation explicitly supports strict tag filtering for isolated scopes. ([GitHub][5])
+
+---
+
+# 54. Test the baseline versus memory mode
+
+You want a script like:
+
+```text
+test_comparison.py
+```
+
+Input:
+
+```text
+P402 Month 6 check-in
+```
+
+Run:
+
+```text
+BASELINE
+```
+
+then:
+
+```text
+HINDSIGHT
+```
+
+Store both outputs.
+
+The point isn't to make baseline terrible.
+
+The point is to demonstrate:
+
+```text
+same current information
+       +
+without memory
+       â†“
+generic contextual response
+
+same current information
+       +
+Hindsight
+       â†“
+historical pattern + previous outcome
+```
+
+That is exactly the before/after narrative encouraged by the hackathon. 
+
+---
+
+# 55. Create an explicit "Hindsight was used" indicator
+
+Your result page should contain:
+
+```text
+MEMORY STATUS
+
+âœ“ Hindsight queried
+âœ“ 3 relevant memories retrieved
+âœ“ Historical context used
+âœ“ Current interaction retained
+```
+
+Don't make the judge infer that Hindsight was used.
+
+Show it.
+
+---
+
+# 56. Make the learning visible
+
+Your UI should show:
+
+```text
+MEMORY EVOLUTION
+
+Interaction 1
+Stored
+
+Interaction 2
+Stored
+
+Interaction 3
+Stored
+
+Current interaction
+Historical pattern found
+```
+
+The hackathon specifically wants agents that become more useful through repeated interactions and accumulated memory. 
+
+---
+
+# 57. Add a "Memory growth" page
+
+A simple page could say:
+
+```text
+TRIALGUARD MEMORY
+
+Participants        10
+Check-ins           57
+Historical events   57
+Resolved outcomes   21
+
+Recent remembered patterns
+...
+```
+
+Don't fabricate memory counts from Hindsight internals if you can't accurately obtain them.
+
+Use your application's own counters or Hindsight's documented API responses.
+
+---
+
+# 58. The most important UX principle
+
+Don't make the coordinator read a 700-word AI response.
+
+The coordinator wants:
+
+```text
+What is happening now?
+What happened before?
+What is relevant?
+What should I review?
+```
+
+So your Action Brief should be **short and structured**.
+
+The detailed memory evidence should be expandable.
+
+That keeps the 60-second demo clean, which matches the hackathon's emphasis on fast, understandable demos. 
+
+---
+
+# 59. Use a strong visual distinction between current and historical information
+
+For example:
+
+```text
+CURRENT
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Month 6 complaint
+
+HISTORICAL
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Month 1
+Month 2
+Month 3
+
+CONNECTION
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Similar event detected
+
+ACTION
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Review with clinical team
+```
+
+This makes the memory concept understandable even before the judge reads the technical explanation.
+
+---
+
+# 60. Your 60-second demo
+
+The supplied modified proposal already uses the sequence:
+
+```text
+historical logs
+â†’ current trigger
+â†’ Hindsight retrieval
+â†’ action brief
+```
+
+which is appropriate for the hackathon's short-demo format. 
+
+I would implement the final demo like this:
+
+### 0â€“10 seconds
+
+Show:
+
+```text
+"This is Participant P402."
+```
+
+Then show Month 1 and Month 3 history.
+
+### 10â€“20 seconds
+
+Enter:
+
+> "Severe nausea again. Considering leaving the trial."
+
+### 20â€“35 seconds
+
+Click:
+
+```text
+Analyze with Hindsight
+```
+
+Show:
+
+```text
+Hindsight Recall
+3 relevant memories found
+```
+
+### 35â€“50 seconds
+
+Display:
+
+```text
+Month 1
+Nausea after dosage increase
+
+Month 2
+Improvement documented
+
+Month 3
+Another dosage increase
+```
+
+### 50â€“60 seconds
+
+Show:
+
+```text
+Historical pattern identified.
+
+Coordinator Action Brief:
+Review previous documented outcome with
+appropriate clinical team.
+```
+
+And then one line:
+
+> **"Without memory, the agent sees today's complaint. With Hindsight, it understands the history behind it."**
+
+That's your punchline.
+
+---
+
+# 61. What you should NOT put into the demo
+
+Avoid:
+
+```text
+Login
+Signup
+User management
+Admin panel
+Complex analytics
+Charts everywhere
+Patient prediction scores
+Medication recommendations
+Medical diagnosis
+Chatbot conversation history
+Large RAG document library
+Multiple unrelated agents
+```
+
+The official guide explicitly recommends a tight scope rather than a sprawling prototype. 
+
+---
+
+# 62. Your README should explain the architecture
+
+Create a README with this structure:
+
+```text
+# TrialGuard
+
+## Problem
+
+Clinical-trial coordinators may lose useful longitudinal context
+when participant interactions are distributed across months.
+
+## Solution
+
+TrialGuard uses Hindsight to retain and retrieve historical
+participant interactions and outcomes.
+
+## Architecture
+
+Flask
+â†’ Agent
+â†’ Hindsight
+â†’ Groq
+â†’ Action Brief
+
+## How Hindsight Is Used
+
+1. Retain each participant interaction
+2. Tag memories by participant and trial
+3. Recall relevant historical memories
+4. Use timestamps for temporal context
+5. Feed retrieved memories to the agent
+6. Retain outcomes for future interactions
+
+## Safety
+
+Synthetic data only.
+Decision support only.
+No diagnosis or autonomous treatment recommendations.
+
+## Demo
+
+...
+```
+
+This directly satisfies the rule requiring an explanation of how Hindsight is used. 
+
+---
+
+# 63. Include a dedicated architecture diagram
+
+Your README should contain something like:
+
+```text
+Participant Check-in
+        â”‚
+        â–¼
+     Flask API
+        â”‚
+        â–¼
+   Agent LLM
+        â”‚
+        â”‚ tool call
+        â–¼
+Hindsight Recall
+        â”‚
+        â”œâ”€â”€ Semantic
+        â”œâ”€â”€ Keyword
+        â”œâ”€â”€ Graph
+        â””â”€â”€ Temporal
+        â”‚
+        â–¼
+Historical Memories
+        â”‚
+        â–¼
+Structured Agent Output
+        â”‚
+        â–¼
+Safety Validator
+        â”‚
+        â–¼
+Coordinator Action Brief
+        â”‚
+        â–¼
+Retain New Outcome
+```
+
+The four retrieval methods above correspond to Hindsight's current Recall architecture. ([Hindsight Cloud][7])
+
+---
+
+# 64. Technical implementation phases
+
+I would actually build it in this order.
+
+## Phase 1 â€” Hindsight connectivity
+
+First prove:
+
+```text
+Python â†’ Hindsight Cloud
+```
+
+Test:
+
+```text
+retain()
+recall()
+```
+
+Don't build the UI yet.
+
+---
+
+## Phase 2 â€” Memory dataset
+
+Create:
+
+```text
+P402 history
+P207 history
+P311 history
+...
+```
+
+Retain everything.
+
+Test participant isolation and temporal queries.
+
+---
+
+## Phase 3 â€” Flask backend
+
+Build:
+
+```text
+participants
+checkins
+agent_runs
+```
+
+and the `/analyze` route.
+
+---
+
+## Phase 4 â€” Agent
+
+Implement:
+
+```text
+Groq
++
+recall_patient_history tool
++
+Hindsight
+```
+
+First make the agent work from the terminal.
+
+---
+
+## Phase 5 â€” Structured response
+
+Generate:
+
+```text
+current_issue
+historical_matches
+historical_pattern
+previous_outcome
+coordinator_action
+safety_note
+```
+
+---
+
+## Phase 6 â€” Safety validator
+
+Prevent:
+
+```text
+diagnosis
+prescription
+dosage changes
+causal overclaims
+```
+
+---
+
+## Phase 7 â€” UI
+
+Build dashboard â†’ participant â†’ check-in â†’ results.
+
+---
+
+## Phase 8 â€” Baseline mode
+
+Add:
+
+```text
+Without Hindsight
+With Hindsight
+```
+
+---
+
+## Phase 9 â€” Demo polish
+
+Make P402 perfect.
+
+Don't spend the last hours adding features. Spend them making the **memory story undeniable**.
+
+---
+
+# 65. Error handling
+
+Your application needs explicit fallbacks.
+
+### Hindsight unavailable
+
+Display:
+
+```text
+Historical memory service unavailable.
+No historical context was used.
+```
+
+Do not pretend memory was used.
+
+### Groq unavailable
+
+Display:
+
+```text
+Agent analysis unavailable.
+Current check-in has been saved for later processing.
+```
+
+### No relevant memories
+
+Display:
+
+```text
+No relevant historical memory found.
+```
+
+### Invalid participant
+
+Return:
+
+```text
+Participant not found.
+```
+
+### Empty check-in
+
+Return:
+
+```text
+Please enter a participant check-in.
+```
+
+### Malformed model output
+
+Retry or fall back to a safe structured response.
+
+Groq's current Structured Outputs documentation recommends retry/validation strategies when using non-strict output modes and notes that strict mode provides stronger schema guarantees on supported models. ([GroqCloud][10])
+
+---
+
+# 66. Build an evaluation set
+
+Don't judge the project only by whether the P402 demo works.
+
+Create 15â€“20 test scenarios.
+
+For each scenario, record:
+
+```text
+Case
+Expected relevant memories
+Actual retrieved memories
+Pattern expected?
+Safety expectation
+```
+
+Examples:
+
+```text
+TC01
+Recurring nausea
+Expected: Month 1 + Month 2 + Month 3
+
+TC02
+New headache
+Expected: no relevant history
+
+TC03
+P402 query
+Expected: no P207 memories
+
+TC04
+Conflicting history
+Expected: uncertainty warning
+
+TC05
+Urgent safety language
+Expected: escalation
+```
+
+This gives you a defensible technical testing section.
+
+---
+
+# 67. Evaluate Hindsight specifically
+
+Since memory is worth **25%** of judging, test it as its own subsystem. 
+
+Your evaluation should measure:
+
+```text
+Did Hindsight retrieve the correct historical event?
+
+Did it retrieve the relevant outcome?
+
+Did it respect participant boundaries?
+
+Did it identify temporal relationships?
+
+Did the final agent use the retrieved memory correctly?
+```
+
+You don't necessarily need a sophisticated benchmark.
+
+A manual test matrix with clearly defined expected results is enough for a hackathon prototype.
+
+---
+
+# 68. Make "memory centrality" measurable
+
+Create a small comparison table in the README:
+
+| Mode      | Historical context | Previous outcome | Pattern             |
+| --------- | ------------------ | ---------------- | ------------------- |
+| Baseline  | No                 | No               | Limited             |
+| Hindsight | Yes                | Yes              | Yes, when supported |
+
+Don't score or rank your own project. Just document the functional difference.
+
+---
+
+# 69. Use realistic but clearly synthetic names/data
+
+For example:
+
+```text
+Participant P402
+Participant P117
+Participant P311
+```
+
+Rather than:
+
+```text
+Rahul Sharma
+Sarah Johnson
+...
+```
+
+There is little value in pretending they are real people.
+
+Your data can still look realistic while remaining obviously synthetic.
+
+The hackathon explicitly permits synthetic data. 
+
+---
+
+# 70. How to use Hindsight's newer learning features
+
+You don't have to build the whole system around them, but they are useful to understand.
+
+Hindsight's 0.4+ learning architecture introduced:
+
+```text
+Raw facts
+     â†“
+Observations
+     â†“
+Mental models
+```
+
+with observations generated automatically and mental models usable as curated summaries.
+
+For TrialGuard, you could eventually use this for something like:
+
+```text
+Observation:
+Participant P402 has experienced recurring nausea following
+multiple dosage-related events documented over the trial.
+```
+
+But **do not make this your MVP dependency**.
+
+Your core hackathon path should remain:
+
+```text
+Retain
+â†’ Recall
+â†’ Agent
+â†’ Retain outcome
+```
+
+That's easier to build, test, and explain.
+
+---
+
+# 71. A useful advanced feature: historical pattern cards
+
+Once the core system works, add a small card:
+
+```text
+RECURRING PATTERN
+
+3 related events found
+First occurrence: Month 1
+Most recent: Month 6
+Previous outcome: Improvement documented
+```
+
+This makes the temporal memory value instantly visible.
+
+The key is that the card must be generated from actual retrieved evidence, not hardcoded.
+
+---
+
+# 72. Another useful advanced feature: "Why this memory?"
+
+For every retrieved memory:
+
+```text
+Why retrieved?
+
+âœ“ Same participant
+âœ“ Similar symptom
+âœ“ Related dosage event
+âœ“ Earlier date
+âœ“ Historical outcome available
+```
+
+This helps the judge understand why the system retrieved it.
+
+---
+
+# 73. Another useful advanced feature: memory confidence through evidence, not fake percentages
+
+I would **not** display:
+
+```text
+92.4% confidence
+```
+
+That creates false precision.
+
+Instead:
+
+```text
+Evidence:
+Direct historical match
+
+or
+
+Evidence:
+Related historical event
+
+or
+
+Evidence:
+No relevant historical memory found
+```
+
+This is much easier to justify.
+
+---
+
+# 74. How to demonstrate "learning"
+
+Your demo can actually have two moments.
+
+### Before learning
+
+```text
+Month 1
+Nausea reported
+```
+
+### After learning
+
+```text
+Month 2
+Symptoms improved after documented intervention
+```
+
+Then later:
+
+```text
+Month 6
+Nausea returns
+```
+
+The agent now knows not only:
+
+> "This happened before."
+
+but:
+
+> "This happened before **and there was a documented outcome**."
+
+That is a substantially stronger memory story.
+
+---
+
+# 75. Do not rely on hardcoded P402 logic
+
+This is extremely important.
+
+Don't write:
+
+```python
+if participant_id == "P402":
+    return "Previous nausea episode..."
+```
+
+Judges can detect this quickly.
+
+Instead:
+
+```text
+P402
+ â†“
+Hindsight
+ â†“
+retrieval
+ â†“
+LLM
+```
+
+The data should drive the result.
+
+The same code should work for:
+
+```text
+P117
+P209
+P311
+P607
+...
+```
+
+---
+
+# 76. Don't hardcode the final Action Brief either
+
+Your backend should not contain:
+
+```text
+if nausea:
+   say X
+```
+
+You can have deterministic safety policies, but the historical interpretation should come from:
+
+```text
+current event
++
+retrieved memories
++
+LLM synthesis
+```
+
+That's what makes it an agent.
+
+---
+
+# 77. Keep a complete audit record
+
+For every agent run, save:
+
+```text
+Participant
+Current check-in
+Hindsight query
+Retrieved memory IDs
+Retrieved memory text
+Final response
+Timestamp
+```
+
+Then you can reproduce:
+
+```text
+Why did TrialGuard generate this answer?
+```
+
+This makes the technical implementation much stronger.
+
+---
+
+# 78. How to handle Hindsight retrieval limits
+
+Recall returns ranked relevant memories; current Hindsight supports configurable token budgets and limits. ([Hindsight Cloud][7])
+
+Don't dump dozens of memories into the LLM.
+
+For the prototype:
+
+```text
+max 5â€“8 relevant memories
+```
+
+is a sensible application-level target.
+
+Your goal is:
+
+```text
+few highly relevant memories
+```
+
+not:
+
+```text
+entire participant history
+```
+
+---
+
+# 79. Query construction matters
+
+Don't use the raw participant check-in directly as the only recall query.
+
+Generate a focused query.
+
+For:
+
+> "I am tired of this nausea. It is happening again."
+
+Use:
+
+```text
+Find historical events for this participant related to nausea,
+fatigue, dosage changes, previous similar complaints, interventions,
+and documented outcomes.
+```
+
+This increases the chance of retrieving the useful longitudinal context.
+
+---
+
+# 80. But don't over-expand queries either
+
+If the current issue is:
+
+```text
+nausea
+```
+
+don't ask Hindsight:
+
+```text
+Find everything that ever happened to this participant.
+```
+
+That's against your own core principle.
+
+You want:
+
+```text
+current issue
+â†’ relevant historical memories
+```
+
+not:
+
+```text
+current issue
+â†’ entire participant history
+```
+
+---
+
+# 81. Deployment architecture
+
+Once the local version works:
+
+```text
+User browser
+      â†“
+Hosted Flask app
+      â”‚
+      â”œâ”€â”€ Groq API
+      â”‚
+      â””â”€â”€ Hindsight Cloud
+```
+
+SQLite can work for a demo deployment with a single instance, but don't present it as production-grade clinical infrastructure.
+
+Say:
+
+> **"This is a hackathon prototype using synthetic data."**
+
+That's honest and appropriate.
+
+---
+
+# 82. Environment separation
+
+Have:
+
+```text
+.env
+```
+
+for local secrets.
+
+And deployment environment variables:
+
+```text
+HINDSIGHT_BASE_URL
+HINDSIGHT_API_KEY
+HINDSIGHT_BANK_ID
+GROQ_API_KEY
+```
+
+Never put:
+
+```text
+api_key="..."
+```
+
+inside source files.
+
+---
+
+# 83. Your `requirements.txt`
+
+Something along these lines:
+
+```text
+Flask
+hindsight-client
+groq
+python-dotenv
+pydantic
+```
+
+Then:
+
+```powershell
+pip freeze > requirements.txt
+```
+
+once everything is working.
+
+---
+
+# 84. GitHub repository structure
+
+Your GitHub should look professional:
+
+```text
+TrialGuard/
+â”œâ”€â”€ app.py
+â”œâ”€â”€ agent.py
+â”œâ”€â”€ hindsight_service.py
+â”œâ”€â”€ groq_service.py
+â”œâ”€â”€ db.py
+â”œâ”€â”€ prompts.py
+â”œâ”€â”€ seed_demo.py
+â”œâ”€â”€ requirements.txt
+â”œâ”€â”€ README.md
+â”œâ”€â”€ .env.example
+â”‚
+â”œâ”€â”€ templates/
+â”œâ”€â”€ static/
+â”œâ”€â”€ tests/
+â””â”€â”€ data/
+```
+
+Do not upload:
+
+```text
+.env
+real keys
+private logs
+local database
+```
+
+---
+
+# 85. Add a Hindsight section to the README
+
+Make this very explicit:
+
+## How Hindsight powers TrialGuard
+
+```text
+1. Every important participant interaction is retained.
+2. Memories are tagged by participant and trial.
+3. Timestamps preserve longitudinal context.
+4. Recall retrieves relevant historical memories.
+5. Retrieved memories are supplied to the reasoning agent.
+6. Outcomes are retained so later interactions can benefit from them.
+```
+
+This should be one of the easiest sections for a judge to understand.
+
+---
+
+# 86. Explain the difference between Hindsight and SQLite
+
+In the README:
+
+```text
+SQLite stores the application's operational records.
+
+Hindsight provides persistent agent memory:
+it extracts meaningful facts from events, links entities and
+relationships, and retrieves relevant memories using semantic,
+keyword, graph and temporal retrieval.
+```
+
+The current Hindsight documentation supports this distinction. ([Hindsight Cloud][4])
+
+---
+
+# 87. Explain why Hindsight is necessary
+
+This should be another README section.
+
+### Without Hindsight
+
+```text
+Current check-in
+        â†“
+LLM
+        â†“
+Generic response
+```
+
+### With Hindsight
+
+```text
+Current check-in
+        â†“
+Hindsight
+        â†“
+Historical context
+        â†“
+LLM
+        â†“
+Contextual action brief
+```
+
+This directly addresses the hackathon's memory criterion.
+
+---
+
+# 88. Your final agent pipeline
+
+The implementation you should aim to have at the end is:
+
+```text
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚         PARTICIPANT CHECK-IN         â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                   â”‚
+                   â–¼
+           â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+           â”‚ Flask Backend â”‚
+           â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                   â”‚
+             Save current
+                record
+                   â”‚
+          â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”
+          â”‚                 â”‚
+          â–¼                 â–¼
+      SQLite          Agent LLM
+                            â”‚
+                            â–¼
+                    recall_patient_history
+                            â”‚
+                            â–¼
+                       HINDSIGHT
+                            â”‚
+           â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+           â”‚                â”‚                â”‚
+       Semantic         Keyword           Graph
+           â”‚                â”‚                â”‚
+           â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                            â”‚
+                         Temporal
+                            â”‚
+                            â–¼
+                   Ranked Memories
+                            â”‚
+                            â–¼
+                      Agent LLM
+                            â”‚
+                            â–¼
+                  Structured Action Brief
+                            â”‚
+                            â–¼
+                    Safety Validator
+                            â”‚
+                            â–¼
+                       Coordinator
+                            â”‚
+                            â–¼
+                     New Outcome
+                            â”‚
+                            â–¼
+                       RETAIN
+                            â”‚
+                            â–¼
+                   Future Hindsight
+```
+
+That is the system.
+
+---
+
+# 89. Your MVP definition
+
+Before calling the project "done", these seven things must work:
+
+| Requirement                              | Must work? |
+| ---------------------------------------- | ---------: |
+| Hindsight retain                         |          âœ… |
+| Hindsight recall                         |          âœ… |
+| Participant-specific memory filtering    |          âœ… |
+| Temporal historical retrieval            |          âœ… |
+| Agent tool calling                       |          âœ… |
+| Coordinator Action Brief                 |          âœ… |
+| Outcome retained for future interactions |          âœ… |
+
+Everything else is secondary.
+
+---
+
+# 90. What I would implement first
+
+The correct build order is **not**:
+
+```text
+Beautiful UI
+â†’ Dashboard
+â†’ CSS
+â†’ Animations
+â†’ Agent
+```
+
+It is:
+
+```text
+Hindsight connection
+        â†“
+Seed P402
+        â†“
+Retain history
+        â†“
+Recall history
+        â†“
+Groq agent
+        â†“
+Tool calling
+        â†“
+Final Action Brief
+        â†“
+Baseline comparison
+        â†“
+Flask UI
+        â†“
+Testing
+        â†“
+Demo polish
+```
+
+That order reduces the risk of building a beautiful interface around a broken memory architecture.
+
+---
+
+# 91. The final 60-second story you are building toward
+
+The judge sees:
+
+### Before
+
+```text
+P402
+Month 1
+Nausea
+
+Month 3
+Dosage increase
+```
+
+### Then
+
+```text
+MONTH 6
+
+"I'm having severe nausea again.
+I'm thinking about leaving."
+```
+
+### The agent acts
+
+```text
+Analyzing with Hindsight...
+```
+
+### Hindsight reveals
+
+```text
+3 relevant historical memories
+
+Month 1
+Similar nausea
+
+Month 2
+Improvement documented
+
+Month 3
+Dosage event
+```
+
+### Final result
+
+```text
+Historical pattern detected.
+
+The current issue resembles an earlier
+documented episode.
+
+Previous outcome:
+Improvement was documented.
+
+Coordinator action:
+Review historical context with the
+appropriate clinical team.
+```
+
+Then:
+
+> **"The difference isn't that our LLM is smarter. The difference is that it remembers."**
+
+That sentence captures the project.
+
+---
+
+# 92. How this satisfies each hackathon criterion
+
+The supplied judging criteria are:
+
+**Innovation 30%**
+**Hindsight Memory 25%**
+**Technical Implementation 20%**
+**User Experience 15%**
+**Real-world Impact 10%**. 
+
+### Innovation
+
+You are applying persistent memory to a longitudinal professional workflow rather than making another generic conversational assistant.
+
+### Hindsight Memory
+
+This is the heart:
+
+```text
+past interaction
+â†’ outcome
+â†’ later retrieval
+â†’ current decision context
+```
+
+### Technical Implementation
+
+You have:
+
+```text
+Flask
+SQLite
+Groq tool calling
+Hindsight
+structured output
+safety validation
+testing
+```
+
+### UX
+
+One persona:
+
+```text
+Clinical Coordinator
+```
+
+One workflow:
+
+```text
+Analyze participant check-in
+```
+
+One output:
+
+```text
+Coordinator Action Brief
+```
+
+### Real-world impact
+
+You're addressing a professional workflow involving repeated participant interactions and retention-related concerns, which is consistent with the hackathon's instruction to target real business workflows rather than student-centric applications. 
+
+---
+
+# 93. What "100% aligned" should mean in practice
+
+I wouldn't define 100% alignment as "having every possible feature."
+
+I'd define it as:
+
+```text
+Hindsight is mandatory
+        +
+Hindsight is central
+        +
+The memory demonstrably changes the result
+        +
+The problem is professionally relevant
+        +
+The demo is understandable quickly
+        +
+The system actually works
+        +
+The claims are defensible
+        +
+The scope stays tight
+```
+
+That's what you should optimize for.
+
+---
+
+# 94. Final implementation checklist
+
+### Core
+
+```text
+â–¡ Hindsight Cloud connected
+â–¡ Memory bank created
+â–¡ Groq connected
+â–¡ Flask backend running
+â–¡ SQLite database working
+```
+
+### Memory
+
+```text
+â–¡ Check-ins retained
+â–¡ Outcomes retained
+â–¡ Timestamps included
+â–¡ Participant tags included
+â–¡ Trial tags included
+â–¡ Strict recall filtering enabled
+â–¡ Historical retrieval tested
+```
+
+### Agent
+
+```text
+â–¡ Tool calling implemented
+â–¡ Hindsight recall tool implemented
+â–¡ Agent prompt written
+â–¡ Structured output defined
+â–¡ Hallucination guardrails added
+â–¡ Safety validator added
+```
+
+### Product
+
+```text
+â–¡ Dashboard
+â–¡ Participant timeline
+â–¡ Check-in form
+â–¡ Hindsight memory display
+â–¡ Pattern display
+â–¡ Coordinator Action Brief
+â–¡ Baseline mode
+```
+
+### Testing
+
+```text
+â–¡ Relevant history
+â–¡ No history
+â–¡ Conflicting history
+â–¡ Cross-participant isolation
+â–¡ Temporal retrieval
+â–¡ Hindsight failure
+â–¡ LLM failure
+â–¡ Unsafe output
+```
+
+### Submission
+
+```text
+â–¡ Clean GitHub repo
+â–¡ README
+â–¡ Architecture diagram
+â–¡ Hindsight explanation
+â–¡ Demo video
+â–¡ Live demo
+â–¡ Required content deliverables
+```
+
+The supplied hackathon document specifically requires the GitHub repository, demo video, live project demo, content deliverables, and an explanation of Hindsight's use. 
+
+One limitation: your uploaded rules mention an **official content guide**, but that guide itself is not included in the files you provided, so I have not invented its specific article/social/video formatting requirements. 
+
+## The one architecture I would actually build
+
+```text
+                TRIALGUARD
+                    â”‚
+          â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+          â”‚                   â”‚
+       Flask UI          SQLite
+          â”‚             exact records
+          â–¼
+       Groq Agent
+          â”‚
+     tool calling
+          â”‚
+          â–¼
+   Hindsight Cloud
+          â”‚
+    â”Œâ”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”
+    â”‚     â”‚     â”‚
+ semantic keyword graph
+          â”‚
+       temporal
+          â”‚
+          â–¼
+ Historical Memories
+          â”‚
+          â–¼
+   Groq structured
+      synthesis
+          â”‚
+          â–¼
+  Safety Validator
+          â”‚
+          â–¼
+ Coordinator
+ Action Brief
+          â”‚
+          â–¼
+   Outcome retained
+          â”‚
+          â””â”€â”€â”€â”€â”€â”€â†’ Future Memory
+```
+
+**That is the project I would buildâ€”not a larger system.**
+
+
