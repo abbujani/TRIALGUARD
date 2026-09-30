@@ -69,13 +69,10 @@ def _ensure_demo_seed() -> None:
 
 
 @app.before_request
-
-def startup():
-
-
-db.init_db()
-
-_ensure_demo_seed()
+def _startup():
+    """Ensure the DB is initialised before the first request."""
+    db.init_db()
+    _ensure_demo_seed()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
