@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import sqlite3
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -33,18 +34,60 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 _HERE    = Path(__file__).parent
-DB_PATH  = Path(os.environ.get("DB_PATH", str(_HERE / "data" / "trialguard.db")))
+
+
+def _resolve_db_path() -> Path:
+    """
+    Decide where the SQLite file lives.
+
+    • ``DB_PATH`` env var always wins (used by the test suite).
+    • On Vercel the bundle filesystem is read-only, so the database must go
+      to ``/tmp`` (the only writable location in a serverless function).
+      Writing to ``data/`` there raises "unable to open database file".
+    • Everywhere else keep the local default: ``data/trialguard.db``.
+    """
+    explicit = os.environ.get("DB_PATH", "").strip()
+    if explicit:
+        return Path(explicit)
+    if os.environ.get("VERCEL") == "1":
+        return Path("/tmp/trialguard.db")
+    return _HERE / "data" / "trialguard.db"
+
+
+DB_PATH  = _resolve_db_path()
 
 # ── Connection ────────────────────────────────────────────────────────────────
 
-def _conn() -> sqlite3.Connection:
-    """Open (or create) the SQLite database and return a connection."""
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(str(DB_PATH))
-    con.row_factory = sqlite3.Row          # rows accessible as dicts
+def _open(path: Path) -> sqlite3.Connection:
+    con = sqlite3.connect(str(path))
+    con.row_factory = sqlite3.Row           # rows accessible as dicts
     con.execute("PRAGMA journal_mode=WAL")  # safer concurrent access
     con.execute("PRAGMA foreign_keys=ON")
     return con
+
+
+def _conn() -> sqlite3.Connection:
+    """Open (or create) the SQLite database and return a connection.
+
+    If the configured location is not writable (read-only serverless
+    filesystem), fall back to a temporary directory once so the app keeps
+    serving instead of returning 500 on every request.
+    """
+    global DB_PATH
+    try:
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        return _open(DB_PATH)
+    except (sqlite3.OperationalError, OSError) as exc:
+        fallback = Path(tempfile.gettempdir()) / "trialguard.db"
+        if fallback == DB_PATH:
+            raise
+        logger.warning(
+            "DB at %s is not writable (%s) — falling back to %s",
+            DB_PATH, exc, fallback,
+        )
+        fallback.parent.mkdir(parents=True, exist_ok=True)
+        DB_PATH = fallback
+        return _open(DB_PATH)
 
 
 # ── Schema ────────────────────────────────────────────────────────────────────

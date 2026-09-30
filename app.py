@@ -15,8 +15,11 @@ Blueprint Section 65 — every route has graceful error fallbacks.
 
 from __future__ import annotations
 
+import json
+import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()  # must be first — before any module reads os.environ
@@ -29,17 +32,45 @@ import memory as mem
 from safety import is_urgent
 
 app = Flask(__name__)
-app.secret_key = "trialguard-dev-secret"   # non-sensitive; replaced in prod via env
+app.secret_key = os.environ.get("SECRET_KEY", "trialguard-dev-secret")
 
 # Jinja2 extras
 app.jinja_env.globals["enumerate"] = enumerate
 
 # ── App startup ───────────────────────────────────────────────────────────────
 
+def _ensure_demo_seed() -> None:
+    """Seed the demo participants on serverless (Vercel) cold starts.
+
+    Vercel's /tmp SQLite is wiped on every cold start, so without this the
+    dashboard would show an empty participant list after each new container.
+    Mirrors seed_db.py: only runs on Vercel, and only when the participants
+    table is empty. Failures are non-fatal.
+    """
+    if os.environ.get("VERCEL") != "1":
+        return
+    try:
+        if db.list_participants():
+            return
+        demo_file = Path(__file__).parent / "data" / "demo_data.json"
+        if not demo_file.exists():
+            return
+        for p in json.loads(demo_file.read_text(encoding="utf-8")).get("participants", []):
+            db.upsert_participant(
+                participant_id=p["id"],
+                display_name=p.get("display_name", p["id"]),
+                trial_id=p.get("trial_id", "TRIAL-001"),
+                status=p.get("status", "Active"),
+            )
+    except Exception as exc:  # noqa: BLE001
+        app.logger.warning("Demo auto-seed failed (non-fatal): %s", exc)
+
+
 @app.before_request
 def _startup():
     """Ensure the DB is initialised before the first request."""
     db.init_db()
+    _ensure_demo_seed()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
