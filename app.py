@@ -66,11 +66,12 @@ def _ensure_demo_seed() -> None:
         app.logger.warning("Demo auto-seed failed (non-fatal): %s", exc)
 
 
+import autoseed
+
 @app.before_request
 def _startup():
-    """Ensure the DB is initialised before the first request."""
     db.init_db()
-    _ensure_demo_seed()
+    autoseed.seed_if_empty()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
