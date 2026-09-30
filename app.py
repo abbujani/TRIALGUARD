@@ -66,7 +66,7 @@ def _ensure_demo_seed() -> None:
         app.logger.warning("Demo auto-seed failed (non-fatal): %s", exc)
 
 
-import autoseed
+
 
 @app.before_request
 
