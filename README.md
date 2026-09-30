@@ -396,7 +396,7 @@ This system is a prototype built for demonstration. It uses entirely synthetic d
 
 ## Links
 
-- 🚀 **Live Demo:** [https://trialguard-dun.vercel.app](https://trialguard-dun.vercel.app)
+- 🚀 **Live Demo:** [https://trialguard-ten.vercel.app](https://trialguard-ten.vercel.app)
 - 🧠 **Hindsight Cloud:** [https://ui.hindsight.vectorize.io](https://ui.hindsight.vectorize.io)
 - 📖 **Hindsight Docs:** [https://hindsight.vectorize.io](https://hindsight.vectorize.io)
 - 💻 **Hindsight GitHub:** [https://github.com/vectorize-io/hindsight](https://github.com/vectorize-io/hindsight)
