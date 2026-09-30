@@ -30,7 +30,6 @@ Environment variables consumed (via python-dotenv / os.environ):
 
 from __future__ import annotations
 
-import functools
 import json
 import logging
 import os
@@ -54,57 +53,23 @@ _client: Hindsight | None = None
 def _get_client() -> Hindsight:
     """Return (and lazily create) the shared Hindsight client instance."""
     global _client
+    base_url = os.environ.get("HINDSIGHT_BASE_URL", "").strip()
+    api_key  = os.environ.get("HINDSIGHT_API_KEY",  "").strip() or None
+    if not base_url:
+        raise EnvironmentError(
+            "HINDSIGHT_BASE_URL is not set. "
+            "Add it to your .env file or environment."
+        )
     if _client is None:
-        base_url = os.environ.get("HINDSIGHT_BASE_URL", "").strip()
-        api_key = os.environ.get("HINDSIGHT_API_KEY", "").strip() or None
-        if not base_url:
-            raise EnvironmentError(
-                "HINDSIGHT_BASE_URL is not set. "
-                "Add it to your .env file or environment."
-            )
         _client = Hindsight(base_url=base_url, api_key=api_key)
         logger.debug("Hindsight client initialised at %s", base_url)
     return _client
 
 
-def reset_client() -> None:
-    """Drop the cached client so the next call builds a fresh one."""
+def _reset_client() -> None:
+    """Force the Hindsight client singleton to be recreated on next call."""
     global _client
     _client = None
-
-
-# Event-loop errors raised when a cached async-backed client is reused on a
-# different loop — happens in long-lived serverless containers (Vercel) that
-# serve many warm invocations. Recovery: drop the cache and retry once.
-_LOOP_ERROR_HINTS = (
-    "different loop",
-    "Timeout context manager",
-    "Event loop is closed",
-    "no running event loop",
-    "no current event loop",
-)
-
-
-def _is_loop_error(exc: Exception) -> bool:
-    msg = str(exc)
-    return any(hint in msg for hint in _LOOP_ERROR_HINTS)
-
-
-def _with_client_retry(fn):
-    """Retry once with a fresh client when the cached one is loop-bound stale."""
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        try:
-            return fn(*args, **kwargs)
-        except Exception as exc:
-            if not _is_loop_error(exc):
-                raise
-            logger.warning(
-                "Hindsight event-loop error, retrying with fresh client: %s", exc
-            )
-            reset_client()
-            return fn(*args, **kwargs)
-    return wrapper
 
 
 def _bank_id() -> str:
@@ -123,7 +88,6 @@ def _participant_tag(participant_id: str) -> str:
     return f"participant:{participant_id}"
 
 
-@_with_client_retry
 def get_version() -> str:
     """
     Ping the Hindsight server and return its API version string.
@@ -132,11 +96,16 @@ def get_version() -> str:
     -------
     str  — the ``api_version`` field from the server's VersionResponse.
     """
-    resp: VersionResponse = _get_client().get_version()
-    return resp.api_version
+    try:
+        resp: VersionResponse = _get_client().get_version()
+        return resp.api_version
+    except Exception:
+        # Session may have expired — reset and retry once
+        _reset_client()
+        resp: VersionResponse = _get_client().get_version()
+        return resp.api_version
 
 
-@_with_client_retry
 def retain(
     content: str,
     participant_id: str,
@@ -169,13 +138,23 @@ def retain(
     if extra_tags:
         tags.extend(extra_tags)
 
-    resp: RetainResponse = _get_client().retain(
-        bank_id=_bank_id(),
-        content=content,
-        document_id=document_id,
-        metadata=metadata or {},
-        tags=tags,
-    )
+    try:
+        resp: RetainResponse = _get_client().retain(
+            bank_id=_bank_id(),
+            content=content,
+            document_id=document_id,
+            metadata=metadata or {},
+            tags=tags,
+        )
+    except Exception:
+        _reset_client()
+        resp: RetainResponse = _get_client().retain(
+            bank_id=_bank_id(),
+            content=content,
+            document_id=document_id,
+            metadata=metadata or {},
+            tags=tags,
+        )
     logger.debug(
         "retain ok | participant=%s | doc_id=%s | items=%d",
         participant_id,
@@ -185,7 +164,6 @@ def retain(
     return resp
 
 
-@_with_client_retry
 def recall(
     query: str,
     participant_id: str,
@@ -222,14 +200,25 @@ def recall(
     if extra_tags:
         tags.extend(extra_tags)
 
-    resp: RecallResponse = _get_client().recall(
-        bank_id=_bank_id(),
-        query=query,
-        tags=tags,
-        tags_match="all_strict",  # hard isolation — no cross-participant leakage
-        max_tokens=max_tokens,
-        budget=budget,
-    )
+    try:
+        resp: RecallResponse = _get_client().recall(
+            bank_id=_bank_id(),
+            query=query,
+            tags=tags,
+            tags_match="all_strict",  # hard isolation — no cross-participant leakage
+            max_tokens=max_tokens,
+            budget=budget,
+        )
+    except Exception:
+        _reset_client()
+        resp: RecallResponse = _get_client().recall(
+            bank_id=_bank_id(),
+            query=query,
+            tags=tags,
+            tags_match="all_strict",
+            max_tokens=max_tokens,
+            budget=budget,
+        )
     logger.debug(
         "recall ok | participant=%s | results=%d",
         participant_id,
@@ -240,7 +229,6 @@ def recall(
     return resp
 
 
-@_with_client_retry
 def ensure_bank_exists(
     name: str = "TrialGuard",
     mission: str = (
@@ -392,7 +380,6 @@ def _trial_tags(trial: dict[str, Any], participant_id: str) -> list[str]:
 # ── Public domain helpers ─────────────────────────────────────────────────────
 
 
-@_with_client_retry
 def ingest_trial(
     trial: dict[str, Any],
     participant_id: str,
@@ -548,7 +535,6 @@ def query_trial(
     )
 
 
-@_with_client_retry
 def list_participant_memories(
     participant_id: str,
     *,
@@ -596,7 +582,6 @@ __all__ = [
     "get_version",
     "recall",
     "retain",
-    "reset_client",
     # Layer 2
     "ingest_trial",
     "ingest_trials",
